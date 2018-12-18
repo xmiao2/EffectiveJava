@@ -1,0 +1,3404 @@
+==Overview==
+This course will walk you through how to apply best practices of [[Effective Java>>https://www.amazon.com/Effective-Java-3rd-Joshua-Bloch/dp/0134685997/ref=sr_1_1?ie=UTF8&qid=1539313868&sr=8-1&keywords=effective+java]], third edition, by **Joshua Bloch** to your coding and code review, which will **improve the quality of Amazon's Java codebase**. Joshua Bloch is a professor at Carnegie Mellon University; he was formerly the chief Java architect at Google and a distinguished engineer at Sun Microsystems.
+<br><br>
+//Note that code samples and materials in this course have been adapted/quoted from the above book.//
+
+===Target Audience===
+SDEs at all levels.
+
+===Prerequisites===
+This course assumes existing knowledge and skills in Java programming.
+
+===Estimated Time===
+About **2-4 hours**, depending on your knowledge of Java programming.
+
+</div>
+
+<div class="tab-pane" id="Module1">
+
+==General Programming==
+
+{{box}}
+**Objective**: This section is devoted to the nuts and bolts of Java.
+
+**Key topics**:
+
+1. [[Scope of Local Variables>>.||anchor=Hprogramming1]]
+1. [[For-Each Loops and Traditional For Loops>>.||anchor=Hprogramming2]]
+1. [[Use of Libraries>>.||anchor=Hprogramming3]]
+1. [[Float, Double, and Exact Calculations>>.||anchor=Hprogramming4]]
+1. [[Primitive Types and Boxed Primitives>>.||anchor=Hprogramming5]]
+1. [[Use of Strings and Other Types>>.||anchor=Hprogramming6]]
+1. [[String Builder and String Concatenation>>.||anchor=Hprogramming7]]
+1. [[Interface and Class References>>.||anchor=Hprogramming8]]
+1. [[Optimization>>.||anchor=Hprogramming9]]
+1. [[Naming Conventions>>.||anchor=Hprogramming10]]
+
+**Estimated time**: 15-30 minutes.
+{{/box}}
+
+{{html}}
+<h3 id="Hprogramming1">Scope of Local Variables</h3>
+{{/html}}
+
+Can you spot a bug in one of the following two code segments?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="programming1" value="local"> **Local variable with minimal scope**
+
+{{code language="java"}}
+for (Iterator<Element> i = c.iterator(); i.hasNext(); ) {
+    Element e = i.next();
+    ... // Do something with e and i
+}
+
+for (Iterator<Element> i2 = c2.iterator(); i2.hasNext(); ) {
+    Element e2 = i2.next();
+    ... // Do something with e2 and i2
+}
+{{/code}}
+
+<input type="radio" name="programming1" value="method"> **Local variable with method scope**
+
+{{code language="java"}}
+Iterator<Element> i = c.iterator();
+while (i.hasNext()) {
+    Element e = i.next();
+    ... // Do something with e and i
+}
+
+Iterator<Element> i2 = c2.iterator();
+while (i.hasNext()) {
+    Element e2 = i2.next();
+    ... // Do something with e2 and i2
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+The second implementation above uses {{code}} i {{/code}} instead of {{code}} i2 {{/code}} in the second loop, causing a bug at runtime. This bug can be caught at compile time if you take the following advice: Use **local variable with minimal scope**, so as to increase the readability and maintainability of your code, as well as to reduce the likelihood of silly, but sometimes disastrous, bugs. Here are several ways to do it:
+* Declare the scope of a local variable where it is first used.
+* Initialize every local variable.
+* Prefer {{code}} for {{/code}} loops to {{code}} while {{/code}} loops.
+* Keep methods small and focused on a single task.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hprogramming2">For-Each Loops and Traditional For Loops</h3>
+{{/html}}
+
+Can you spot a bug in one of the following two code segments?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="programming2" value="traditionalFor"> **Traditional for loop**
+
+{{code language="java"}}
+enum Suit { Club, Diamond, Heart, Spade }
+enum Rank { Ace, Deuce, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King }
+...
+List<Card> deck = new ArrayList<>();
+for (Iterator<Suit> s = suits.iterator(); s.hasNext(); )
+    for (Iterator<Rank> r = ranks.iterator(); r.hasNext(); )
+        deck.add(new Card(s.next(), r.next())); 
+{{/code}}
+
+<input type="radio" name="programming2" value="forEach"> **For-each loop**
+
+{{code language="java"}}
+for (Suit s : suits.values())
+    for (Rank r : ranks.values())
+        deck.add(new Card(s, r));
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+{{code}} For {{/code}} loops are usually better than {{code}} while {{/code}} loops, but they are not perfect. Use **{{code}} for-each {{/code}} loop**, or enhanced {{code}} for {{/code}} statement, so as to increase the readability and maintainability of your code further, and thus reduce the likelihood of errors such as the one in the first implementation above where {{code}} s.next() {{/code}} is wrongly executed in the second loop.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hprogramming3">Use of Libraries</h3>
+{{/html}}
+
+Which of the following options would you prefer to generate random integers?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="programming3" value="random"> **Write a random generator method**
+
+{{code language="java"}}
+static Random myRandom = new Random();
+
+static int generateRandom(int upperBound) {
+    return Math.abs(myRandom.nextInt()) % upperBound;
+}
+...
+int randomInt = generateRandom(1000);
+{{/code}}
+
+<input type="radio" name="programming3" value="library"> **Use a library**
+
+{{code language="java"}}
+int randomInt = ThreadLocalRandom.current().nextInt();
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Obviously, **use of library** would be desirable. In general, use of libraries would give you the following advantages:
+* The knowledge of experts who implemented it and the experience of others who used it before you.
+* New features that are added to the libraries in every major release.
+* Better performance that is implemented by experts.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hprogramming4">Float, Double, and Exact Calculations</h3>
+{{/html}}
+
+Can you spot a bug in one the following code segments?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="programming4" value="double"> **Use of floating point for monetary calculation**
+
+{{code language="java"}}
+int getPossibleBoughtItems() {
+    double dollarFunds = 1.0;
+    int numItems = 0;
+    for (double price = 0.10; dollarFunds >= price; price += 0.10, dollarFunds -= price) {
+        numItems++;
+    }
+    return numItems;
+}
+{{/code}}
+
+<input type="radio" name="programming4" value="int"> **Use of int for monetary calculation**
+
+{{code language="java"}}
+int getPossibleBoughtItems() {
+    int centFunds = 100;
+    int numItems = 0;
+    for (int price = 10; centFunds >= price; price += 10, centFunds -= price) {
+        numItems++;
+    }
+    return numItems;
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You should use {{code language="java"}} BigDecimal {{/code}}, {{code language="java"}} int {{/code}}, or {{code language="java"}} long {{/code}} for exact calculations. You should avoid using {{code language="java"}} float {{/code}} and {{code language="java"}} double {{/code}} for exact calculations because they are carefully designed for accurate **approximations** in scientific and engineering calculations. Note that the first method above will return 3, which is wrong, with funds left of $0.3999999999999999.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hprogramming5">Primitive Types and Boxed Primitives</h3>
+{{/html}}
+
+Which of the following two methods runs faster?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="programming5" value="boxed"> **Use of boxed primitives**
+
+{{code language="java"}}
+Long getSumOfPositiveIntegers() {
+    Long sum = 0L;
+    for (long i = Integer.MAX_VALUE; i > 0; i--) {
+        sum += i;
+    }
+    return sum;
+}
+{{/code}}
+
+<input type="radio" name="programming5" value="primitive"> **Use of primitives**
+
+{{code language="java"}}
+long getSumOfPositiveIntegers() {
+    long sum = 0;
+    for (long i = Integer.MAX_VALUE; i > 0; i--) {
+        sum += i;
+    }
+    return sum;
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Whenever possible, you should use **primitives**, instead of boxed primitives, because:
+* Unnecessary use of boxed primitives may result in a hideously slow program because of repeatedly boxed and unboxed operations such as in the one above.
+* When unboxing is run, it can throw a {{code language="java"}} NullPointerException {{/code}}.
+* When boxes primitives are used, applying {{code language="java"}} == {{/code}} operator is almost always wrong and can lead to deadly bugs that are difficult to discover.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hprogramming6">Use of Strings and Other Types</h3>
+{{/html}}
+
+Which of the following two implementations would be correct?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="programming6" value="generic"> **Use of a parameterized class**
+
+{{code language="java"}}
+public final class ThreadLocal<T> {
+    public ThreadLocal() {};
+    public void set (T value) {...};
+    public T get() {...};
+}
+{{/code}}
+
+<input type="radio" name="programming6" value="string"> **Use of string as capacity**
+
+{{code language="java"}}
+public final class ThreadLocal {
+    private ThreadLocal() {};
+    public static void set (String key, Object value) {...};
+    public static Object get(String key) {...};
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Whenever possible, you should avoid using {{code language="java"}} String {{/code}}, because it is poor substitutes for other value types, or aggregate types, or capacity types. It is cumbersome, slower, error-prone, and inflexible than other types. Note that in the second implementation above, the string keys represent a shared namespace for thread-local variables, leading to failure and security problems (multiple clients can fail if they use the same key, and a malicious client can gain illicit access to another client's data).
+{{/showhide}}
+
+{{html}}
+<h3 id="Hprogramming7">String Builder and String Concatenation</h3>
+{{/html}}
+
+Which of the following two implementations would be better?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="programming7" value="builder"> **Use of string builder**
+
+{{code language="java"}}
+public String firstNamesToString(List<Person> members) {
+    StringBuilder sb = new StringBuilder();
+    for (Person p : members) {
+        sb.append("[");
+        sb.append(p.firstName);
+        sb.append("]");
+    }
+    return sb.toString();
+}
+{{/code}}
+
+<input type="radio" name="programming7" value="concat"> **Use of string concatenation**
+
+{{code language="java"}}
+public String firstNamesToString(List<Person> members) {
+    String s = "";
+    for (Person p : members) {
+        s += "[" + p.firstName + "]";
+    }
+    return s;
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In general, you should avoid using string concatenation because of its poor performance, unless if you want to concatenate only a few strings or if performance is irrelevant.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hprogramming8">Interface and Class Reference</h3>
+{{/html}}
+
+Which of the following two method signatures would be better?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="programming8" value="interface"> **Use of interface reference**
+
+{{code language="java"}}
+public List<Person> getPeopleByFirstName(List<Person> members, String firstName) {}
+{{/code}}
+
+<input type="radio" name="programming8" value="class"> **Use of class reference**
+
+{{code language="java"}}
+public ArrayList<Person> getPeopleByFirstName(LinkedList<Person> members, String firstName) {}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+It would be desirable, more flexible, and more backward-compatible to
+* use interface types to refer to parameters, return values, variables, and fields if appropriate interface types exist,
+* use least specific class types to refer to parameters, return values, variables, and fields if appropriate interface types do not exist.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hprogramming9">Optimization</h3>
+{{/html}}
+
+Which of the following two implementations would be faster?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="programming9" value="regular"> **Use of a regular pattern**
+
+{{code language="java"}}
+public class RomanNumber {
+    static boolean isRomanNumber(String s) {
+        return s.matches("^(?=.)M*(C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+    }
+}
+{{/code}}
+
+<input type="radio" name="programming9" value="precompile"> **Use of a precompiled pattern**
+
+{{code language="java"}}
+public class RomanNumber {
+    private static Pattern ROMAN = Pattern.compile("^(?=.)M*(C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+
+    static boolean isRomanNumber(String s) {
+        return ROMAN.matcher(s).matches();
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+The use of a precompiled pattern can improve the performance by several times faster, because it creates an immutable {{code language="java"}} Pattern {{/code}}, precompiles it, and reuses the same instance for every invocation of {{code language="java"}} isRomanNumber {{/code}} method. Note that optimization is very hard to achieve; premature optimization could be the root of all evil; so, don't do it unless you have very clear evidence (e.g., after you compare run time of the above two implementations). Here are some suggestions:
+* Strive to write good programs rather than fast ones, because a good architecture would allow to optimize it easily in the long run.
+* Strive to avoid design decisions that limit performance, because once those design decisions are made they are hard to be changed and optimized later (e.g., APIs that are exposed to clients).
+* Measure the performance carefully before and after each attempted optimization (e.g., use profiling).
+{{/showhide}}
+
+{{html}}
+<h3 id="Hprogramming10">Naming Conventions</h3>
+{{/html}}
+
+Which of the following two implementations would be more readable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="programming10" value="non-consistent"> **Naming conventions don't really matter**
+
+{{code language="java"}}
+package com.amazon.Session3.Repository;
+
+import com.amazon.Session3.Model.customer;
+import java.util.List;
+import java.util.Optional;
+
+public interface customerRepository {
+    public List<customer> Findallcustomers();
+    public Optional<customer> FindCustomerbyid(Integer CUSTOMERID);
+}
+{{/code}}
+
+<input type="radio" name="programming10" value="consistent"> **It is useful to adhere to generally accepted naming conventions**
+
+{{code language="java"}}
+package com.amazon.session3.repository;
+
+import com.amazon.session3.model.Customer;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface CustomerRepository {
+
+    public List<Customer> findAllCustomers();
+
+    public Optional<Customer> findCustomerById(Integer id);
+
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You should rarely violate typographical naming conventions and never without a good reason. There are only a handful of them, as follows:
+* Use lower case for packages or modules, for example {{code language="java"}} com.amazon.common.collection {{/code}}.
+* Use title case for classes and interfaces, for example {{code language="java"}} HashMap {{/code}}.
+* Use title case, except for the first letter for methods for example, {{code language="java"}} getFirstName() {{/code}}.
+* Use title case, except for the first letter, for fields and local variables, for example {{code language="java"}} i, isChecked, numOfItems {{/code}}.
+* Use upper case for constant fields, for example {{code language="java"}}MAX_VALUE{{/code}}.
+* Use one capital letter with an optional digit for type parameters, for example {{code language="java"}} T, E, K, V, T1, T2 {{/code}}.
+
+Grammatical naming conventions are more flexible, but it would be desirable that you and your team make them consistently, for example, always start a method name with a verb.
+{{/showhide}}
+
+</div>
+
+<div class="tab-pane" id="Module2">
+
+==Creating and Destroying Objects==
+{{box}}
+**Objective**: This section concerns when and how to create objects, when and how to avoid creating them, how to destroy them in a timely manner, and how to manage any cleanup actions that must be done before their destruction.
+
+**Key topics**:
+
+1. [[Static Factory Methods and Constructors>>.||anchor=Hconstructor1]]
+1. [[Builders and Constructors>>.||anchor=Hconstructor2]]
+1. [[Singleton>>.||anchor=Hconstructor3]]
+1. [[Noninstantiability>>.||anchor=Hconstructor4]]
+1. [[Dependency Injection>>.||anchor=Hconstructor5]]
+1. [[Reusable Objects>>.||anchor=Hconstructor6]]
+1. [[Obsolete Object References>>.||anchor=Hconstructor7]]
+1. [[Try-With-Resources and Try-Finally>>.||anchor=Hconstructor8]]
+
+**Estimated time**: 15-30 minutes.
+{{/box}}
+
+{{html}}
+<h3 id="Hconstructor1">Static Factory Methods and Constructors</h3>
+{{/html}}
+
+You are designing a class such as {{code language="java"}}Date{{/code}} and you want to allow a client to obtain an instance of the class, given some input such as instant. Which API would you choose to support this use case?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="constructor1" value="factory"> **Static factory method**
+
+{{code language="java"}}
+Date d = Date.from(instant);
+{{/code}}
+
+<input type="radio" name="constructor1" value="constructor"> **Constructor**
+
+{{code language="java"}}
+Date d = new Date(instant);
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You should use **static factory methods** because of the following advantages, which constructors don't:
+* They have names.
+* They are not required to create a new object each time they are invoked.
+* They can return an object of any subtype of their return type. This advantage would also provide you with great flexibility to change implementations of subtypes from release to release, without breaking backward compatibility.
+* They help decouple service provider frameworks (i.e., systems that make APIs available to clients) from implementation providers.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hconstructor2">Builders and Constructors</h3>
+{{/html}}
+
+Of the following two ways to design a constructor with N parameters (N > 4), which option would you choose?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="constructor2" value="constructor"> **Constructor**
+
+{{code language="java"}}
+public class MyClass {
+    private final int param1; // required
+    private final int param2; // required   
+    private final int param3; // required
+    private final int param4; // optional
+    private final int param5; // optional
+    
+    public MyClass(int p1, int p2, int p3) {
+        this(p1, p2, p3, 0);
+    }
+    
+    public MyClass(int p1, int p2, int p3, int p4) {
+        this(p1, p2, p3, p4, 0);
+    }
+    
+    public MyClass(int p1, int p2, int p3, int p4, int p5) {
+        param1 = p1; param2 = p2; param3 = p3; param4 = p4; param5 = p5;
+    }
+}
+{{/code}}
+
+<input type="radio" name="constructor2" value="builder"> **Builder**
+
+{{code language="java"}}
+public class MyClass {
+    private final int param1;
+    private final int param2;   
+    private final int param3;
+    private final int param4;
+    private final int param5;
+
+    public static class Builder {
+        private final int param1; // required
+        private final int param2; // required    
+        private final int param3; // required
+        private int param4; // optional
+        private int param5; // optional
+
+        public Builder(int p1, int p2, int p3) {
+           param1 = p1; param2 = p2; param3 = p3;
+        }
+
+        public Builder withParam4(int p4) {
+            param4 = p4; return this;
+        }
+
+        public Builder withParam5(int p5) {
+            param5 = p5; return this;
+        }
+
+        public MyClass build() {
+            return new MyClass(this);
+        }
+    }
+
+    private MyClass(Builder b) {
+        param1 = b.param1; param2 = b.param2; param3 = b.param3;
+        param4 = b.param4; param5 = b.param5;
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You should use **builder** because it makes client code much easier to read and write.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hconstructor3">Singleton</h3>
+{{/html}}
+
+Which of the following implementations would you choose?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="constructor3" value="enum"> **Use of enum**
+
+{{code language="java"}}
+public enum MySingleton {
+    INSTANCE;
+
+    public void getDataByMarketplaceId(MarketplaceId id) { ... }
+}
+{{/code}}
+
+<input type="radio" name="constructor3" value="staticFactory"> **Use of static factory**
+
+{{code language="java"}}
+public class MySingleton {
+    private static final MySingleton INSTANCE = new MySingleton();
+    private MySingleton() { ... }
+    public static MySingleton getInstance() { return INSTANCE; }
+
+    public void getDataByMarketplaceId(MarketplaceId id) { ... }
+}
+{{/code}}
+
+<input type="radio" name="constructor3" value="finalField"> **Use of public final field**
+
+{{code language="java"}}
+public class MySingleton {
+    public static final MySingleton INSTANCE = new MySingleton();
+    private MySingleton() { ... }
+
+    public void getDataByMarketplaceId(MarketplaceId id) { ... }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+The Enum approach, though a bit unnatural, would be desirable because it is more concise and comes with free serialization machinery and provides ironclad guarantee against multiple instantiation. You can't, however, use this approach if your singleton must extend a super class other than Enum; in this case it would be appropriate to use the static factory approach. 
+{{/showhide}}
+
+{{html}}
+<h3 id="Hconstructor4">Noninstantiability</h3>
+{{/html}}
+
+Which of the following implementations would you choose for a class that must be not instantiable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="constructor4" value="noPrivateConstructor"> **Without a private constructor**
+
+{{code language="java"}}
+public class UtilityClass {
+    public static String removeEndIfPatternMatched(String target, Pattern p) { ... }
+}
+{{/code}}
+
+<input type="radio" name="constructor4" value="privateConstructor"> **With a private constructor**
+
+{{code language="java"}}
+public class UtilityClass {
+    private UtilityClass() {
+        throw new AssertionError();
+    }
+
+    public static String removeEndIfPatternMatched(String target, Pattern p) { ... }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Obviously, **with a private constructor** the class is inaccessible outside the class and cannot be subclassed; it is also inaccessible inside the class if an assertion error is added.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hconstructor5">Dependency Injection</h3>
+{{/html}}
+
+Which of the following implementations would you choose?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="constructor5" value="staticUtility"> **Use of static utility**
+
+{{code language="java"}}
+public class SpellChecker {
+    private static final Dictionary dictionary = new Dictionary();
+    private SpellChecker() {}
+
+    public static boolean isValid(String word) { ... } 
+}
+{{/code}}
+
+<input type="radio" name="constructor5" value="injection"> **Use of dependency injection**
+
+{{code language="java"}}
+public class SpellChecker {
+    private final Dictionary dictionary;
+    
+    public SpellChecker(Dictionary d) { this.dictionary = Objects.requireNonNull(d); }
+
+    public boolean isValid(String word) { ... }
+}
+{{/code}}
+
+<input type="radio" name="constructor5" value="singleton"> **Use of singleton**
+
+{{code language="java"}}
+public class SpellChecker {
+    private final Dictionary dictionary = new Dictionary();
+    private static final SpellChecker INSTANCE = new SpellChecker();
+    private SpellChecker() { ... }
+    
+    public static SpellChecker getInstance() { return INSTANCE; }
+
+    public boolean isValid(String word) { ... }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Static utility and singleton are not relevant for classes whose behavior is parameterized by another resource; use of **dependency injection** instead would greatly improve flexibility and testability (e.g., you can change/use different implementations of {{code language="java"}} Dictionary {{/code}} for different languages easily at any time).
+{{/showhide}}
+
+{{html}}
+<h3 id="Hconstructor6">Reusable Objects</h3>
+{{/html}}
+
+Which of the following implementations would be desirable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="constructor6" value="string"> **Use of String.matches**
+
+{{code language="java"}}
+public class RomanNumber {
+    static boolean isRomanNumber(String s) {
+        return s.matches("^(?=.)M*(C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+    }
+}
+{{/code}}
+
+<input type="radio" name="constructor6" value="pattern"> **Use of Pattern.matcher**
+
+{{code language="java"}}
+public class RomanNumber {
+    private static Pattern ROMAN = Pattern.compile("^(?=.)M*(C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+
+    static boolean isRomanNumber(String s) {
+        return ROMAN.matcher(s).matches();
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+While {{code language="java"}} String.matches {{/code}} is the easiest way to check if a string matches a regular expression, you should reuse expensive objects such as {{code language="java"}} Pattern {{/code}} in performance-critical situations.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hconstructor7">Obsolete Object References</h3>
+{{/html}}
+
+Can you spot a memory leak problem in one of the following two implementations?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="constructor7" value="obsolete"> **Stack implementation 1**
+
+{{code language="java"}}
+public class Stack {
+    private Object[] elements;
+    private int size = 0;
+    private static int final INITIAL_CAPACITY = 8;
+
+    public Stack{} { elements = new Object[INITIAL_CAPACITY]; }
+
+    public void push(Object o) { ... }
+    
+    public Object pop() {
+        if (size == 0)
+            throw new EmptyStackException();
+        return elements[--size];
+    }
+}
+{{/code}}
+
+<input type="radio" name="constructor7" value="noObsolete"> **Stack implementation 2**
+
+{{code language="java"}}
+public class Stack {
+    private Object[] elements;
+    private int size = 0;
+    private static int final INITIAL_CAPACITY = 8;
+
+    public Stack{} { elements = new Object[INITIAL_CAPACITY]; }
+
+    public void push(Object o) { ... }
+    
+    public Object pop() {
+        if (size == 0)
+            throw new EmptyStackException();
+        Object o = elements[--size];
+        elements[size] = null;
+        return o;
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You should use the second implementation because it eliminates obsolete references. Although the first implementation can pass all the tests you could have, it causes a memory leak because the object referred by {{code language="java"}} elements[size] {{/code}} is excluded from garbage collection; such memory leaks, in extreme cases, can cause serious problems with {{code language ="java"}} OutOfMemoryError {{/code}}. Other common cases that may cause memory leak problems are implementations of caches, listeners, and callbacks.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hconstructor8">Try-With-Resources and Try-Finally</h3>
+{{/html}}
+
+Which of the following two implementations would you prefer?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="constructor8" value="try-finally"> ** Use of try-finally**
+
+{{code language="java"}}
+static void copyFile(String src, String dst) throws IOException {
+    InputStream in = new FileInputStream(src);
+    try {
+        OutputStream out = new FileOutputStream(dst);
+        try {
+            byte[] buffer = new byte[BUFFER_SIZE];
+            int n;
+            while ((n = in.read(buffer)) >= 0)
+                out.write(buffer, 0, n);
+        } finally {
+            out.close();
+        }
+    } finally {
+        in.close();
+    }
+}
+{{/code}}
+
+<input type="radio" name="constructor7" value="noObsolete"> **Use of try-with-resources**
+
+{{code language="java"}}
+static void copyFile(String src, String dst) throws IOException {
+    try (InputStream in = new FileInputStream(src);
+         OutputStream out = new FileOutputStream(dst)) {
+        byte[] buffer = new byte[BUFFER_SIZE];
+        int n;
+        while ((n = in.read(buffer)) >= 0)
+            out.write(buffer, 0, n);
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You should use **try-with-resources versions** because they are the best way to close resources. In addition, the code is shorter, more readable and concise, and provides far better diagnostics.
+{{/showhide}}
+
+</div>
+
+<div class="tab-pane" id="Module3">
+
+==Classes==
+
+{{box}}
+**Objective**: This section contains guidelines to help you make the best use of powerful elements of Java to design and implement usable, robust, and flexible classes and interfaces.
+
+**Key topics**:
+
+1. [[Accessibility of Classes and Members>>.||anchor=Hclass1]]
+1. [[Accessor Methods and Public Fields>>.||anchor=Hclass2]]
+1. [[Mutability>>.||anchor=Hclass3]]
+1. [[Composition and Inheritance>>.||anchor=Hclass4]]
+1. [[Inheritance Documentation>>.||anchor=Hclass5]]
+1. [[Interfaces and Abstract Classes>>.||anchor=Hclass6]]
+1. [[Interface Design and Posterity>>.||anchor=Hclass7]]
+1. [[Interfaces and Constant Classes>>.||anchor=Hclass8]]
+1. [[Class Hierarchies and Tagged Classes>>.||anchor=Hclass9]]
+1. [[Static and Non-Static Member Classes>>.||anchor=Hclass10]]
+
+**Estimated time**: 15-30 minutes.
+{{/box}}
+
+{{html}}
+<h3 id="Hclass1">Accessibility of Classes and Members</h3>
+{{/html}}
+
+Can you spot **a potential security hole** in one of the following three code segments?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="class1" value="publicList"> **Use of a public list**
+
+{{code language="java"}}
+private static final String[] PRIVATE_COLORS = { ... };
+public static final List<String> COLORS = ImmutableList.copyOf(PRIVATE_COLORS);
+{{/code}}
+
+<input type="radio" name="class1" value="publicMethod"> **Use of a public accessor**
+
+{{code language="java"}}
+private static final String[] PRIVATE_COLORS = { ... };
+public static final String[] colors() {
+    return PRIVATE_COLORS.clone();
+}
+{{/code}}
+
+<input type="radio" name="class1" value="publicArray"> **Use of a public array**
+
+{{code language="java"}}
+public static final String[] COLORS = { ... };
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You should avoid using a public array because **a nonzero-length array is always mutable**, and thus clients will be able to modify the elements of the array. In general, you should reduce accessibility of program elements as much as possible, so as to hide the implementation as much as possible.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hclass2">Accessor Methods and Public Fields</h3>
+{{/html}}
+
+Which of the following two implementations would you prefer?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="class2" value="publicAccessors"> **Use of public accessors**
+
+{{code language="java"}}
+public class Person {
+    private final String firstName;
+    private final String lastName;
+
+    public Person(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+    
+    public String getFirstName() {return firstName; }
+    public String getLastName() {return lastName; }
+}
+{{/code}}
+
+<input type="radio" name="class2" value="publicFields"> **Use of public fields**
+
+{{code language="java"}}
+public class Person {
+    public String firstName;
+    public String lastName;
+
+    public Person(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You should avoid using public fields because if a class exposes its data fields then all hope of changing its representation is lost after client codes have been distributed far and wide. Accessor methods preserve flexibility to change internal representation of the class without causing problems for client codes; that is a key feature of encapsulation in OOP. Note also that exposing mutable public fields will result in serious problems, as observed in the implementation of {{code language="java"}} Point {{/code}} and {{code language="java"}} Dimension {{/code}} in {{code language="java"}} java.awt {{/code}} package.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hclass3">Mutability</h3>
+{{/html}}
+
+Which of the following two implementations would be more flexible?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="class3" value="immutability"> **Immutable class**
+
+{{code language="java"}}
+public class Complex {
+    private final double r;
+    private final double i;
+
+    private Complex(double r, double i) {
+        this.r = r;
+        this.i = i;
+    }
+    
+    public static Complex valueOf(double r, double i) { return new Complex(r, i); }
+
+    public double realPart() { return r; }
+    public double imaginaryPart() { return i; }
+
+    public Complex plus(Complex c) { return new Complex(r + c.r, i + c.i); }
+    ...
+}
+{{/code}}
+
+<input type="radio" name="class3" value="mutability"> **Mutable class**
+
+{{code language="java"}}
+public class Complex {
+    public double r;
+    public double i;
+
+    public Complex(double r, double i) {
+        this.r = r;
+        this.i = i;
+    }
+   
+    public Complex plus(Complex c) {
+        r += c.r;
+        i += c.i;
+        return this;
+    }
+    ...
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In general, classes should be immutable unless there's a very good reason to make them mutable; and if so, you should minimize mutability when designing and implementing classes. Follow the following rules to make a class immutable:
+* **Don't provide methods that modify the state of objects** that you want to be immutable.
+* **Ensure that the class can't be extended**, so as to prevent careless or malicious subclasses from compromising the immutability of the class.
+* **Make all fields final** to express your intent clearly.
+* **Make all fields private** to prevent clients from obtaining access to mutable objects referred to by the fields and modifying these objects directly.
+* **Ensure exclusive access to any mutable components**, for example, by making defensive copies in constructors, accessors, and readObject methods.
+
+Here are some key benefits of immutability:
+* **Immutable objects are simple** because it is always in only one state, and hence providing failure atomicity for free.
+* **Immutable objects are inherently thread-safe, and thus they require no synchronization**.
+* **You can share immutable objects freely**.
+* **Immutable objects make great building blocks for other objects**.
+
+Keep in mind, however, that **the biggest disadvantage of immutable classes is that they require a separate object for each distinct value**, and creating those objects can be costly in some cases. So, sometimes you may need to provide supporting classes in addition to those immutable classes, for example, {{code language="java"}} StringBuilder {{/code}} for {{code language="java"}} String {{/code}}.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hclass4">Composition and Inheritance</h3>
+{{/html}}
+
+Can you spot a flaw in one of the following implementations?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="class4" value="inheritance"> **Use of inheritance**
+
+{{code language="java"}}
+public class MyHashSet<E> extends HashSet<E> {
+    private int addCount = 0;
+
+    public MyHashSet(){}
+    public MyHashSet(int initCap, float loadFactor) { super(initCap, loadFactor); }
+
+    public int getAddCount() { return addCount; }
+
+    @Override public boolean add(E e) {
+        boolean result = super.add(e);
+        if (result)
+            addCount++;
+        return result;
+    }
+    @Override public boolean addAll(Collection<? extends E> c) {
+        boolean result = super.add(c);
+        if (result)
+            addCount += c.size();
+        return result;
+    }
+}
+{{/code}}
+
+<input type="radio" name="class4" value="composition"> **Use of composition**
+
+{{code language="java"}}
+// Wrapper class
+public class MyHashSet<E> extends ForwardingSet<E> {
+    private int addCount = 0;
+
+    public MyHashSet(Set<E> s){ super(s); }
+
+    public int getAddCount() { return addCount; }
+
+    @Override public boolean add(E e) {
+        boolean result = super.add(e);
+        if (result)
+            addCount++;
+        return result;
+    }
+    @Override public boolean addAll(Collection<? extends E> c) {
+        boolean result = super.add(c);
+        if (result)
+            addCount += c.size();
+        return result;
+    }
+}
+
+// Reusable forwarding class
+public class ForwardingSet<E> implements Set<E> {
+    private final Set<E> s;
+    public ForwardingSet(Set<E> s) { this.s = s; }
+
+    public boolean add(E e) { return s.add(e); }
+    public int addAll(Collection<? extends E> c) { return s.addAll(c); }
+    ...
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Inheritance is powerful, but it is problematic in many cases because it violates encapsulation; so, it is appropriate only when a genuine subtype relationship exists between the subclass and the superclass, when both of them are in the same package, and when the superclass is designed for inheritance. In many cases, such as the one above, **use of composition and forwarding is usually more robust and powerful than that of inheritance**.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hclass5">Inheritance Documentation</h3>
+{{/html}}
+
+Which of the following implementations would be better documented?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="class5" value="inheritance"> **Keep documentation short**
+
+{{code language="java"}}
+public abstract class AbstractCollection<E> implements Collection<E> {
+    ...
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This implementation iterates over the collection looking for the
+     * specified element.  If it finds the element, it removes the element
+     * from the collection using the iterator's remove method.
+     */
+    public boolean remove(Object o) { ... }
+    ...
+}
+{{/code}}
+
+<input type="radio" name="class5" value="composition"> **Provide implementation details**
+
+{{code language="java"}}
+public abstract class AbstractCollection<E> implements Collection<E> {
+    ...
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This implementation iterates over the collection looking for the
+     * specified element.  If it finds the element, it removes the element
+     * from the collection using the iterator's remove method.
+     *
+     * <p>Note that this implementation throws an
+     * <tt>UnsupportedOperationException</tt> if the iterator returned by this
+     * collection's iterator method does not implement the <tt>remove</tt>
+     * method and this collection contains the specified object.
+     *
+     * @throws UnsupportedOperationException {@inheritDoc}
+     * @throws ClassCastException            {@inheritDoc}
+     * @throws NullPointerException          {@inheritDoc}
+     */
+    public boolean remove(Object o) { ... }
+    ...
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+If you decide that a class can be inherited then **you must document its self-use of overridable methods**. The above documentation with implementation details leaves no doubt that overriding the {{code language="java"}} iterator {{/code}} method will affect the behavior of the {{code language="java"}} remove {{/code}} one. It also explains exactly how the behavior of the {{code language="java"}} iterator {{/code}} method will affect that of the {{code language="java"}} remove {{/code}} method.
+
+Note also that once you publish documentation of a class, you must commit to support it for the whole life of the class. If you fail to do this, subclasses may become dependent on implementation details of the superclass and may break if the implementation of the superclass changes. Also, to enable others to write efficient subclasses you may have to export one or more protected methods. So, designing and implementing inheritance are more difficult than you would think; **unless you know for sure there is a real need for subclasses, you are probably better off prohibiting inheritance**, for example, by declaring your class final or not providing any accessible constructors.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hclass6">Interfaces and Abstract Classes</h3>
+{{/html}}
+
+Which of the following designs would make it easier to design a new {{code language="java"}} SingerSongWriter {{/code}} type that represents people that are both singers and song writers?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="class6" value="interface"> **Use of interfaces**
+
+{{code language="java"}}
+public interface Singer {
+    AudioClip sing(Song s);
+}
+
+public interface SongWriter {
+    Song compose(int chartPosition);
+}
+{{/code}}
+
+<input type="radio" name="class6" value="abstractClass"> **Use of abstract classes**
+
+{{code language="java"}}
+public abstract class Singer {
+    AudioClip sing(Song s);
+}
+
+public abstract class SongWriter {
+    Song compose(int chartPosition);
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In general, **use of interfaces** is the best way to define a type that permits multiple implementations because a class can implement multiple interfaces whereas it cannot extend multiple abstract classes. If you export a nontrivial interface, you should strongly consider providing a skeletal implementation to go with it, via default methods, so that all implementors of the interface can benefit from that.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hclass7">Interface Design and Posterity</h3>
+{{/html}}
+
+If you use Java 8+, it is possible to add new methods, with a default implementation, to existing interfaces without breaking existing implementations. Consider the following possible default implementation of {{code language="java"}} removeIf {{/code}} method to be added to {{code language="java"}} Collection {{/code}} interface in Java 8:<br><br>
+
+{{html wiki=true}}
+
+{{code language="java"}}
+default boolean removeIf(Predicate<? super E> filter) {
+    Objects.requireNonNull(filter);
+    boolean isRemoved = false;
+    for (Iterator<E> it = iterator(); it.hasNext(); ) {
+        if (filter.test(it.next())) {
+            it.remove();
+            isRemoved = true;
+        }
+    }
+    return isRemoved;
+}
+{{/code}}
+{{/html}}
+
+{{html wiki=true}}
+Would the above default implementation of {{code language="java"}} removeIf {{/code}} method be **free of risk**?<br><br>
+
+<input type="radio" name="class7" value="yes"> **Yes**
+<br>
+<input type="radio" name="class7" value="no"> **No**
+
+{{/html}}
+<br><br>
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Although the above implementation is the best general-purpose implementation one could possible write for {{code language="java"}} removeIf {{/code}} method, **it fails on some real-world implementations** of {{code language="java"}} Collection {{/code}}. For example, Apache Commons library's {{code language="java"}} SynchronizedCollection {{/code}} wrapper class provides the ability to use a client-supplied object for locking, in place of the collection. If this class is used in conjunction with Java 8 and haven't override {{code language="java"}} removeIf {{/code}} method then it will inherit the above default implementation. Unfortunately, this default implementation doesn't, indeed can't, maintain the class's fundamental promise: automatically synchronize around each method invocation, because the default implementation knows nothing about synchronization and has no access to the field that contains the locking object. If a client calls {{code language="java"}} removeIf {{/code}} method on a {{code language="java"}} SynchronizedCollection {{/code}} instance in the presence of concurrent modification of the collection by another thread then a {{code language="java"}} ConcurrentModificationException {{/code}} exception or other unspecified behaviors may occur. Note that the client's code compiles successfully without error or warning, but fails at runtime, **ouch!**
+
+The moral of the above story is that **you should always design interfaces, especially ones exposed to public use, with great care**. While it is possible to correct some interface design flaws after an interface is released, you cannot count on it! Here are some additional best practices when designing an interface:
+* **Choose method names meaningfully and carefully**, so as to help your clients to use them easily.
+* **Don't go overboard in providing convenience methods**, because maintaining public methods is costly.
+* **Avoid long parameter list** (four or fewer), because long sequences of identically types parameters are especially confusing and harmful.
+* **For parameter types, favor interfaces over classes**, so as to pass any implementation type in methods later.
+* **Prefer two-element enum types to boolean parameters**. For example, {{code language="java"}} public enum TemperatureScale { FAHRENHEIT, CELSIUS } {{/code}} would be more meaningful and extensible than boolean.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hclass8">Interfaces and Constant Classes</h3>
+{{/html}}
+
+Which of the following implementations would be preferable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="class8" value="constant"> **Use of constant classes**
+
+{{code language="java"}}
+public class PhysicalConstants {
+    private PhysicalConstants{}
+
+    public static final double AVOGADROS_NUMBER = 6.022_140_857e23;
+    public static final double BOLTZMANN_CONST  = 1.380_648_520e-23;
+    public static final double ELECTRON_MASS    = 9.109_383_560e-31;
+}
+{{/code}}
+
+<input type="radio" name="class8" value="interface"> **Use of interfaces**
+
+{{code language="java"}}
+public interface PhysicalConstants {
+    static final double AVOGADROS_NUMBER = 6.022_140_857e23;
+    static final double BOLTZMANN_CONST  = 1.380_648_520e-23;
+    static final double ELECTRON_MASS    = 9.109_383_560e-31;
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+**You should use interfaces to define types only**; using them to define constants merely is a poor application of interfaces because it represents a commitment that you must support forever, and sometimes it is confusing. Here are some reasonable practices for exporting constants:
+* If the constants are used only one time then you should add them to where it needs, better with a comment, so as to increase the readability of the codebase (i.e., readers don't need to look for the location where it is defined to know its value). For example, it would be totally fine to use {{code language="java"}} sleep(1000L); // sleep 1,000 milliseconds {{/code}}
+* If the constants are strongly tied to an existing class or interface, you should add them to the class or interface, for the sake of encapsulation reason.
+* If the constants are best viewed as members of  an enumerated types then you should export them as an enum type.
+* Otherwise, you should export the constants with a noninstantiable utility class such as the one above.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hclass9">Class Hierarchies and Tagged Classes</h3>
+{{/html}}
+
+Which of the following implementations would be more flexible?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="class9" value="tag"> **Use of tagged classes**
+
+{{code language="java"}}
+public class Figure {
+    private enum Shape { RECTANGLE, CIRCLE };
+
+    private final Shape shape;   
+    private final double length; // for RECTANGLE
+    private final double width;  // for RECTANGLE
+    private final double radius; // for CIRCLE
+
+    public Figure(double l, double w) { length = l; width = w; }
+    public Figure(double r) { radius = r; }
+
+    public double area() {
+        if (shape == RECTANGLE)
+            return length * width;
+        else
+            return Math.PI * (radius * radius);
+    }
+    ...
+}
+{{/code}}
+
+<input type="radio" name="class9" value="hierarchy"> **Use of class hierarchies**
+
+{{code language="java"}}
+public interface Figure {
+    double area();
+}
+
+public class Circle implements Figure {
+    private final double radius;
+    
+    public Circle(r) { radius = r; }
+
+    public double area() { return Math.PI * (radius * radius); }
+    ...
+}
+
+public class Rectangle implements Figure {
+    private final double length;
+    private final double width;
+    
+    public Rectangle (double l, double w) { length = l; width = w; }
+
+    public double area() { return Math.PI * (radius * radius); }
+    ...
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Tagged classes are seldom appropriate. If you are writing or encounter such type of classes, consider whether you could eliminate and replace them with a hierarchy, because the latter is much easier to read and maintain, and especially more flexible (e.g., it is easy to extend {{code language="java"}} Rectangle {{/code}} class to build a {{code language="java"}} Square {{/code}} one).
+{{/showhide}}
+
+{{html}}
+<h3 id="Hclass10">Static and Non-Static Member Classes</h3>
+{{/html}}
+
+Can you spot a flaw in one of the following implementations?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="class10" value="static"> **Use of static member classes**
+
+{{code language="java"}}
+public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneable, Serializable {
+    ...
+    static class Node<K,V> implements Map.Entry<K,V> {
+        final int hash;
+        final K key;
+        V value;
+        Node<K,V> next;
+        ...
+        public final K getKey()        { return key; }
+        public final V getValue()      { return value; }
+        ...
+    }
+}
+{{/code}}
+
+<input type="radio" name="class10" value="non-static"> **Use of non-static member classes**
+
+{{code language="java"}}
+public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneable, Serializable {
+    ...
+    class Node<K,V> implements Map.Entry<K,V> {
+        final int hash;
+        final K key;
+        V value;
+        Node<K,V> next;
+        ...
+        public final K getKey()        { return key; }
+        public final V getValue()      { return value; }
+        ...
+    }
+    ...
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+A nested class is a class defined within another class; the former should exist only to serve the latter (i.e., the enclosing class). **If you declare a member class that doesn't require access to its enclosing instance then always put {{code language="java"}} static {{/code}} modifier in its declaration**. If you omit this modifier then each instance will have a hidden extraneous reference to its enclosing instance, and storing this reference takes time and space. More seriously, it can result in the enclosing instance being retained when it would be otherwise be eligible for garbage collection, causing catastrophic memory leak, **ouch!** This kind of mistake is often difficult to detect because the reference is invisible.
+{{/showhide}}
+
+</div>
+
+<div class="tab-pane" id="Module4">
+
+==Methods and Generics==
+{{box}}
+**Objective**: This section discusses aspects of method designs: how to treat parameters and return values, how to design method signatures, and how to document methods. This section also tells you how to maximize the benefits and minimize the complications of generics.
+
+**Key topics**:
+
+1. [[Parameter Validity>>.||anchor=Hmethod1]]
+1. [[Defensive Copies>>.||anchor=Hmethod2]]
+1. [[Overloading>>.||anchor=Hmethod3]]
+1. [[Varargs>>.||anchor=Hmethod4]]
+1. [[Empty and Null Returns>>.||anchor=Hmethod5]]
+1. [[Optional Returns>>.||anchor=Hmethod6]]
+1. [[Generics and Raw Types>>.||anchor=Hmethod7]]
+1. [[Generics and Unchecked Warnings>>.||anchor=Hmethod8]]
+1. [[Generics and Arrays and Lists>>.||anchor=Hmethod9]]
+1. [[Generic Types>>.||anchor=Hmethod10]]
+1. [[Generic Methods>>.||anchor=Hmethod11]]
+1. [[Generics and Bounded Wildcards>>.||anchor=Hmethod12]]
+1. [[Generics and Varargs>>.||anchor=Hmethod13]]
+1. [[Generics and Typesafe Heterogeneous Containers>>.||anchor=Hmethod14]]
+1. [[Exposed APIs and Documentation>>.||anchor=Hmethod15]]
+
+**Estimated time**: 15-30 minutes.
+{{/box}}
+
+{{html}}
+<h3 id="Hmethod1">Parameter Validity</h3>
+{{/html}}
+
+Which of the following implementations would be preferable to return a non-negative {{code language="java"}} BigInteger {{/code}} for a modulus method?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method1" value="exception"> **Handle exceptions**
+
+{{code language="java"}}
+public BigInteger mod(BigInteger m) {
+    if (m.signum() <= 0) {
+        throw new ArithmeticException("Modulus must be positive: " + m);
+    }
+    ... // Do the computation
+}
+{{/code}}
+
+<input type="radio" name="method1" value="noException"> **No need to handle exceptions**
+
+{{code language="java"}}
+public BigInteger mod(BigInteger m) {
+    ... // Do the computation
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You should think about what restrictions exist on parameters of a method or constructor when you implement them. You should enforce them, and better document them, with explicit checks at the beginning of the method/constructor body. This modest work will be paid back with interest the first time a validity check fails.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod2">Defensive Copies</h3>
+{{/html}}
+
+Can you spot at least one vulnerability of one of the following implementations?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method2" value="defensive"> **Use defensive copies**
+
+{{code language="java"}}
+public final class Period {
+    private final Date start;
+    private final Date end;
+
+    public Period(Date start, Date end) {
+        this.start = new Date(start.getTime());
+        this.end = new Date(end.getTime());
+        if (this.start.compareTo(this.end) > 0) {
+            throw new IllegalArgumentException(this.start + " cannot be after " + this.end);
+        }
+    }
+    public Date start() { return new Date(start.getTime()); }
+    public Date end() { return new Date(end.getTime()); }
+    ... // Remainder omitted
+}
+{{/code}}
+
+<input type="radio" name="method2" value="noDefensive"> **Don't use defensive copies**
+
+{{code language="java"}}
+public final class Period {
+    private final Date start;
+    private final Date end;
+
+    public Period(Date start, Date end) {
+        if (start.compareTo(end) > 0) {
+            throw new IllegalArgumentException(start + " cannot be after " + end);
+        }
+        this.start = start;
+        this.end = end;
+    }
+    public Date start() { return start; }
+    public Date end() { return end; }
+    ... // Remainder omitted
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In general, **you must program defensively, with the assumption that clients of your class/method will do their best to destroy its variants**. In the example above, {{code language="java"}} Date {{/code}} is unfortunately mutable, and thus vulnerable even though {{code language="java"}} start {{/code}} and {{code language="java"}} end {{/code}} are declared as final. For example, a client can easily create a valid {{code language="java"}} Date {{/code}} object and modify {{code language="java"}} end {{/code}} to be before {{code language="java"}} start {{/code}}, thus violating its immutability and validity. So, here are several lessons learned from the above broken implementation:
+* {{code language="java"}} Date {{/code}} **is obsolete and should no longer be used in new code**; use {{code language="java"}} Instant {{/code}} instead if you are using Java 8+.
+* In the above repaired constructor, **defensive copies are made //before// checking the validity of the inputs, and the validity check is performed on the copies rather than on the originals**. This is necessary to protect classes against changes to the inputs from //another thread during the window of vulnerability// between the time the inputs are checked and the time they are copied.
+* **Do not use the {{code language="java"}} clone {{/code}} method to make a defensive copy of a parameter whose type is subclassable by untrusted parties**, because we don't know how cloning is implemented in subclasses of that type.
+
+Note, however, that if the cost of defensive copies is prohibitive //and// the class trusts its clients not to modify its components inappropriately then defensive copies may be replaced with clear documentation.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod3">Overloading</h3>
+{{/html}}
+
+Consider the following program:
+
+{{code language="java"}}
+public class CollectionClassifier {
+    public static String classify(Set<?> s) { return "Set"; }
+
+    public static String classify(List<?> l) { return "List"; }
+
+    public static String classify(Collection<?> c) { return "Unknown collection"; }
+
+    public static void main(String[] args) {
+        Collection<?>[] collections = { new HashSet<String>(), new ArrayList<BigInteger>() };
+        for (Collection<?> c : collections) {
+            System.out.println(classify(c));
+        }
+    }
+}
+{{/code}}
+
+What does this program print out?<br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method3" value="SetList"> **"Set" and "List"**<br>
+
+<input type="radio" name="method3" value="Unknown"> **"Unknown collection" two times**<br><br>
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You must **use overloading judiciously** because **the choice of which overloading to invoke is made at compile time**. So, in the above example the program prints "Unknown collection" two times because the compile-time type of the parameter passed to {{code language="java"}} classify {{/code}} in the loop is always {{code language="java"}} Collection<?> {{/code}}. Here are some other considerations when designing overloading methods:
+* **Never export multiple overloading methods with the same number of parameters** because they are difficult to use. **You can always give methods different names**, instead, such as {{code language="java"}} writeBoolean(boolean b) {{/code}}, {{code language="java"}} writeInt(int i) {{/code}}, {{code language="java"}} writeLong(long l) {{/code}}.
+* For constructors, you don't have the option of using different names, but you can **use static factories**, instead, such as {{code language="java"}} Instant toInstant(long time) {{/code}}.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod4">Varargs</h3>
+{{/html}}
+
+Which of the following implementations would be desirable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method4" value="array"> **Use args only**
+
+{{code language="java"}}
+static int min(int... args) {
+    if (args.length == 0) {
+        throw new IllegalArgumentException("Must have at least one argument");
+    }
+    int min = args[0];
+    for (int i = 1; i < args.length; i++) {
+        if (args[i] < min) {
+            min = args[i];
+        }
+    }
+    return min;
+}
+{{/code}}
+
+<input type="radio" name="method4" value="firstArgument"> **Use firstArg and remainingArgs**
+
+{{code language="java"}}
+static int min(int firstArg, int... remainingArgs) {
+    int min = firstArg;
+    for (int arg : remainingArgs) {
+        if (arg < min) {
+            min = arg;
+        }
+    }
+    return min;
+}
+{{/code}}
+
+<input type="radio" name="method4" value="overloadingArguments"> **Use overloading methods**
+
+{{code language="java"}}
+static int min(int firstArg) {
+    return firstArg;
+}
+
+static int min(int firstArg, int secondArg) {
+    return Math.min(firstArg, secondArg);
+}
+
+static int min(int firstArg, int secondArg, int thirdArg) {
+    return Math.min(Math.min(firstArg, secondArg), thirdArg);
+}
+
+static int min(int firstArg, int secondArg, int thirdArg, int... remainingArgs) {
+    int min = this.min(firstArg, secondArg, thirdArg);
+    for (int arg : remainingArgs) {
+        if (arg < min) {
+            min = arg;
+        }
+    }
+    return min;
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+The first implementation **fails at runtime only** if the client invokes this method with no arguments, **OUCH!** It is also ugly. **The second implementation is acceptable for many use cases**. In performance-critical situations, however, note that every invocation of the second implementation causes an array allocation and initialization. So, if you have empirical evidence that you can't afford this cost but you need the flexibility of varargs and you know, for example, that 95 percent of the method invocations have three or fewer parameters, then **the third implementation would be a lifesaver**.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod5">Empty and Null Returns</h3>
+{{/html}}
+
+Which of the following implementations would be desirable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method5" value="emptyReturn"> **Empty return**
+
+{{code language="java"}}
+private final List<Person> employees = ...;
+
+public List<Person> getEmployees() {
+    employees.isEmpty() ? Collections.emptyList() : new ArrayList<>(employees);
+}
+{{/code}}
+
+<input type="radio" name="method5" value="nullReturn"> **Null return**
+
+{{code language="java"}}
+private final List<Person> employees = ...;
+
+public List<Person> getEmployees() {
+    return employees.isEmpty() ? null : new ArrayList<>(employees);
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+**Never return {{code language="java"}} null {{/code}} in place of an empty array or collection** because it will require clients to check {{code language="java"}} null {{/code}} return for all method calls, which is ugly; if they forget to do so then it may cause null-pointer problems that are difficult to debug. Similarly, use {{code language="java"}} Strings.EMPTY {{/code}} instead of {{code language="java"}} null {{/code}} wherever possible.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod6">Optional Returns</h3>
+{{/html}}
+
+Which of the following implementations would be desirable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method6" value="throwException"> **Throw exception if empty**
+
+{{code language="java"}}
+public static <E extends Comparable<E>> E max(Collection<E> c) {
+    if (c.isEmpty()) {
+        throw new IllegalArgumentException("Empty exception");
+    }
+    E result = null;
+    for (E e : c) {
+        if (result == null || e.compareTo(result) > 0) {
+            result = Objects.requireNonNull(e);
+        }
+    }
+    return result;
+}
+{{/code}}
+
+<input type="radio" name="method6" value="optionalReturn"> **Optional return**
+
+{{code language="java"}}
+public static <E extends Comparable<E>> Optional<E> max(Collection<E> c) {
+    if (c.isEmpty()) {
+        return Optional.empty();
+    }
+    E result = null;
+    for (E e : c) {
+        if (result == null || e.compareTo(result) > 0) {
+            result = Objects.requireNonNull(e);
+        }
+    }
+    return Optional.of(result);
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Since Java 8, an Optional-returning method is possible, more flexible, and easier to use than one that throws an exception; it is also less error-prone than one that returns {{code language="java"}} null {{/code}}. Here are some best practices when using {{code language="java"}} Optional {{/code}}:
+* **Never return a null value from an Optional-returning method** because doing so defeats the entire purpose of the facility.
+* **Use helpers provided by the facility**, such as {{code language="java"}} String lastWordInLexicon = max(words).orElse("No words..."); {{/code}}, {{code language="java"}} Toy myToy = max(toys).orElseThrow(ToyException::new); {{/code}}.
+* **Container types, including collections, maps, streams, arrays, and optionals, should not be wrapped in optionals**, because they have already provided facility to handle empty values.
+* **Never return an optional of a boxed primitive type**, with possible exception of {{code language="java"}} Boolean {{/code}}, {{code language="java"}} Byte {{/code}}, {{code language="java"}} Character {{/code}}, {{code language="java"}} Short {{/code}}, {{code language="java"}} Float {{/code}}. For other boxed primitive types, use {{code language="java"}} OptionalInt {{/code}}, {{code language="java"}} OptionalLong {{/code}}, {{code language="java"}} OptionalDouble {{/code}} instead.
+
+In summary, if you are writing a method that can't always return a value and it is important for clients to consider that possibility every time they call it, then you should probably return an optional. Note, however, that **there are real performance consequences associated with returning optionals**; so, for performance-critical methods it may be better to return {{code language="java"}} null {{/code}} or throw an exception.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod7">Generics and Raw Types</h3>
+{{/html}}
+
+Can you spot bugs in both implementations below? Which one helps you discover the bug at compile time?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method7" value="rawTypes"> **Use of raw types**
+
+{{code language="java"}}
+...
+private final Collection stamps = ...;
+...
+stamps.add(new Coin( ... ));
+...
+for (Iterator i = stamps.iterator(); i.hasNext(); ) {
+    Stamp stamp = (Stamp) i.next();
+    ...
+}
+{{/code}}
+
+<input type="radio" name="method7" value="generics"> **Use of generics**
+
+{{code language="java"}}
+...
+private final Collection<Stamp> stamps = ...;
+...
+stamps.add(new Coin( ... ));
+...
+for (Iterator i = stamps.iterator(); i.hasNext(); ) {
+    Stamp stamp = (Stamp) i.next();
+    ...
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In the first implementation, adding a coin to the collection results in a vague warning {{code language="java"}} unchecked call {{/code}} and only throws a {{code language="java"}} ClassCastException {{/code}} at run time, **OUCH**! In the second implementation, an {{code language="java"}} error: incompatible types: Coin cannot be converted to Stamp {{/code}} is displayed at compile time and can help you fix the bug easily and as soon as possible. So, using generics can help you **improve the safety and expressiveness of your code**. There are, however, exceptions where you cannot use parameterized types, such as {{code language="java"}} List.class {{/code}} instead of {{code language="java"}} List<String>.class {{/code}}, or {{code language="java"}} if (o instance of Set) {{/code}} instead of {{code language="java"}} if (o instance of Set<String>) {{/code}}; but in those cases using generics doesn't help but is just noise.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod8">Generics and Unchecked Warnings</h3>
+{{/html}}
+
+Which of the following implementations would be preferable? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method8" value="methodScope"> **Use unchecked warning in the method scope**
+
+{{code language="java"}}
+public class ArrayList<E> extends AbstractList<E>
+        implements List<E>, RandomAccess, Cloneable, java.io.Serializable {
+    ...
+    @SuppressWarnings("unchecked")
+    public <T> T[] toArray(T[] a) {
+        if (a.length < size) {
+            return (T[]) Arrays.copyOf(elementData, size, a.getClass());
+        }
+        System.arraycopy(elementData, 0, a, 0, size);
+        if (a.length > size) {
+            a[size] = null;
+        }
+        return a;
+    }
+    ...
+} 
+{{/code}}
+
+<input type="radio" name="method8" value="variableScope"> **Use unchecked warnings in the narrowest possible scope**
+
+{{code language="java"}}
+public class ArrayList<E> extends AbstractList<E>
+        implements List<E>, RandomAccess, Cloneable, java.io.Serializable {
+    ...
+    public <T> T[] toArray(T[] a) {
+        if (a.length < size) {
+            @SuppressWarnings("unchecked") T[] result = (T[]) Arrays.copyOf(elementData, size, a.getClass());
+            return result;
+        }
+        System.arraycopy(elementData, 0, a, 0, size);
+        if (a.length > size) {
+            a[size] = null;
+        }
+        return a;
+    }
+    ...
+} 
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Unchecked warnings are important; don't ignore them because every unchecked warning has the potential to throw a {{code language="java"}} ClassCastException {{/code}} at **runtime**. You should do your best to **eliminate as many of them as possible**. If you can't, however, get rid of an unchecked warning, but you can prove that the code that provoke it is typesafe then suppress it with the corresponding annotation in the **narrowest possible scope**.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod9">Generics and Arrays and Lists</h3>
+{{/html}}
+
+Which of the following implementations would be the best in general? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method9" value="noGeneric"> **Don't use generics**
+
+{{code language="java"}}
+public class Chooser {
+    private final Object[] choices;
+    
+    public Chooser(Collection c) { choices = c.toArray(); }
+
+    public Object choose() {
+        Random r = ThreadLocalRandom.current();
+        return choices[r.nextInt(choices.length)];
+    }
+}
+{{/code}}
+
+<input type="radio" name="method9" value="arrayGeneric"> **Use arrays and generics**
+
+{{code language="java"}}
+public class Chooser<T> {
+    private final T[] choices;
+    
+    public Chooser(Collection<T> c) { choices = (T[]) c.toArray(); }
+
+    public T choose() {
+        Random r = ThreadLocalRandom.current();
+        return choices[r.nextInt(choices.length)];
+    }
+}
+{{/code}}
+
+<input type="radio" name="method9" value="listGeneric"> **Use lists and generics**
+
+{{code language="java"}}
+public class Chooser<T> {
+    private final List<T> choices;
+    
+    public Chooser(Collection<T> c) { choices = new ArrayList<>(c); }
+
+    public T choose() {
+        Random r = ThreadLocalRandom.current();
+        return choices.get(r.nextInt(choices.size()));
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+The first implementation will work but clients have to cast the return value of the choose method to a desired type every time they invoke the method, otherwise the cast will fail at **runtime**. The second implementation will work too but you get a warning at compile time, meaning that the compiler can't prove if it works. You could prove it yourself, but you're better off eliminating the cause of the warning. The third implementation would be desirable; it may be a little verbose, and maybe a tad slower, but **you won't get {{code language="java"}} ClassCastException {{/code}} at runtime**, which is worth it for the peace of mind!
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod10">Generic Types</h3>
+{{/html}}
+
+Which of the following implementations would be preferable? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method10" value="genericTypes"> **Use generic types**
+
+{{code language="java"}}
+public class Stack<E> {
+    private static final int INITIAL_CAPACITY = 16;
+    private E[] elements;
+    private int size = 0;
+
+    @SuppressWarnings("unchecked");
+    public Stack() { elements = (E[]) new Object[INITIAL_CAPACITY]; }
+
+    public void push(E e) {
+        ensureCapacity();
+        elements[size++] = e;
+    }
+
+    public E pop() {
+        if (size == 0) {
+            throw new EmptyStackException();
+        }
+        E e = elements[size--];
+        elements[size] = null;
+        return e;
+    }
+    ...
+}
+{{/code}}
+
+<input type="radio" name="method10" value="objectBasedTypes"> **Use object-based collections**
+
+{{code language="java"}}
+public class Stack {
+    private static final int INITIAL_CAPACITY = 16;
+    private Object[] elements;
+    private int size = 0;
+
+    public Stack() { elements = new Object[INITIAL_CAPACITY]; }
+
+    public void push(Object o) {
+        ensureCapacity();
+        elements[size++] = o;
+    }
+
+    public Object pop() {
+        if (size == 0) {
+            throw new EmptyStackException();
+        }
+        Object o = elements[size--];
+        elements[size] = null;
+        return o;
+    }
+    ...
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In general, generic types are safer and easier to use than types that require casting in clients' code. Keep in mind, however, that generic types don't work with primitives such as {{code language="java"}} int {{/code}}. In addition, in performance-critical situations the above generic-based implementation may cause //heap pollution// because the runtime type of the array doesn't match its compile-time type. In this case, you could declare {{code language="java"}} elements {{/code}} as an array of {{code language="java"}} Object {{/code}} and add {{code language="java"}} @SuppressWarnings {{/code}} before {{code language="java"}} E e = elements[size--]; {{/code}} of {{code language="java"}} pop() {{/code}} method.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod11">Generic Methods</h3>
+{{/html}}
+
+Which of the following implementations would be preferable? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method11" value="genericTypes"> **Use generic types**
+
+{{code language="java"}}
+public static <E> Set<E> union(Set<E> s1, Set<E> s2) {
+    Set<E> result = new HashSet<>(s1);
+    result.addAll(s2);
+    return result;
+}
+{{/code}}
+
+<input type="radio" name="method11" value="rawTypes"> **Use raw types**
+
+{{code language="java"}}
+public static Set union(Set s1, Set s2) {
+    Set result = new HashSet(s1);
+    result.addAll(s2);
+    return result;
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+The second implementation compiles successfully but with two warnings while the first one compiles successfully without any warning. So, like generic types, **generic methods are safer and easier to use** then those that require their clients to put explicit casts on input parameters and return values. Note that, for generic methods you must **add the type parameter list between a method's modifier and its return type**.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod12">Generics and Wildcards</h3>
+{{/html}}
+
+Which of the following implementations would be more flexible? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method12" value="genericTypes"> **Use generic types**
+
+{{code language="java"}}
+public class Stack<E> {
+    ...
+    public Stack() { ... }
+    public void push(E e) { ... }
+    public E pop() { ... }
+    public boolean isEmpty { ... }
+
+    public void pushAll(Iterable<E> src) {
+        for (E e : src) {
+            push(e);
+        }
+    }
+
+    public void popAll(Collection<E> dst) {
+        while (!isEmpty()) {
+            dst.add(pop());
+        }
+    }
+}
+{{/code}}
+
+<input type="radio" name="method12" value="wildcards"> **Use wildcards**
+
+{{code language="java"}}
+public class Stack<E> {
+    ...
+    public Stack() { ... }
+    public void push(E e) { ... }
+    public E pop() { ... }
+    public boolean isEmpty { ... }
+
+    public void pushAll(Iterable<? extends E> src) {
+        for (E e : src) {
+            push(e);
+        }
+    }
+
+    public void popAll(Collection<? super E> dst) {
+        while (!isEmpty()) {
+            dst.add(pop());
+        }
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+It is clear that **for maximum flexibility you should use wildcard types on input parameters that represent producers or consumers**. For {{code language="java"}} pushAll {{/code}} method above, the second implementation enables its clients to pass any {{code language="java"}} Iterable {{/code}} whose elements is a subtype of E, whereas clients of the first one can pass only {{code language="java"}} Iterable {{/code}} whose elements is a strict type of E. Similarly for {{code language="java"}} popAll {{/code}} method, the second implementation enables its clients to pass any {{code language="java"}} Collection {{/code}} whose elements is a super type of E, whereas clients of the first one can pass only {{code language="java"}} Collection {{/code}} whose elements is a strict type of E. Here are some best practices while working with wildcards:
+* Remember **PECS**, which stands for **Producer-Extends and Consumer-Super**. Note that {{code language="java"}} Comparable {{/code}} and {{code language="java"}} Comparator {{/code}} are always consumers.
+* **Don't use bounded wildcard types as return types**, which would force clients to use wildcards in their code.
+* If clients of a class have to think about wildcard types then there is probably something wrong with its APIs.
+* If a type parameter appears only once in an API declaration then replace it with a wildcard; if it is an unbounded type parameter then use unbounded wildcard and if it is a bounded one then use a bounded wildcard.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod13">Generics and Varargs</h3>
+{{/html}}
+
+Can you spot a runtime error in one of the following implementations?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method13" value="genericTypes"> **Use generic types**
+
+{{code language="java"}}
+static <T> List<T> pickTwo(T t1, T t2, T t3) {
+    switch(ThreadLocalRandom.current().nextInt(3)) {
+        case 0: return List.of(T1, T2);
+        case 1: return List.of(T1, T3);
+        case 2: return List.of(T2, T3);
+    }
+    throw new AssertionError("Oops! Should never be here.");
+}
+
+public static void main(String[] args) {
+    List<String> colors = pickTwo("Red", "Green", "Blue");
+    ...
+}
+{{/code}}
+
+<input type="radio" name="method13" value="arrayTypes"> **Use varargs**
+
+{{code language="java"}}
+static <T> T[] toArray(T... args) {
+    return args;
+}
+
+static <T> List<T> pickTwo(T t1, T t2, T t3) {
+    switch(ThreadLocalRandom.current().nextInt(3)) {
+        case 0: return toArray(T1, T2);
+        case 1: return toArray(T1, T3);
+        case 2: return toArray(T2, T3);
+    }
+    throw new AssertionError("Oops! Should never be here.");
+}
+
+public static void main(String[] args) {
+    String[] colors = pickTwo("Red", "Green", "Blue");
+    ...
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+The second implementation would not generate any warning at compile time. It throws, however, a {{code language="java"}} ClassCastException {{/code}} at runtime, **OUCH!** The reason is that {{code language="java"}} toArray {{/code}} method creates an array of type {{code language="java"}} Object[] {{/code}} to store {{code language="java"}} args {{/code}} and returns that array, which results in that exception when converting that array to an array of type {{code language="java"}} String[] {{/code}}. So, **varargs** is powerful in some situations but they don't interact well with generics because the varargs facility is a leaky abstraction that is built on top of arrays and arrays have different type rules from generics. If you write a method with generic varargs then ensure that the method is **type safe** and annotate it with {{code language="java"}} @SafeVarargs {{/code}} so that is is not unpleasant to use. Here are some other notes to consider:
+* **It is unsafe to store a value in a generic varargs array parameter.**
+* **It is unsafe to give another method access to a generic varargs array parameter**, unless if the other method that is correctly annotated with {{code language="java"}} @SafeVarargs {{/code}} or if the method is a non-varargs method and it merely computes some function of the contents of the array. Note that {{code language="java"}} List.of {{/code}} used in the first implementation is a varargs method but it is a well-designed, correctly-safe-annotated one.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod14">Generics and Typesafe Heterogeneous Containers</h3>
+{{/html}}
+
+Which of the following implementations would be preferable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="method14" value="useGenerics"> **Use generics**
+
+{{code language="java"}}
+public class Favorites {
+    private Map<Class<?>, Object> favorites = new HashMap<>();
+
+    public <T> void putFavorite(Class<T> type, T instance) {
+        favorites.put(Objects.requireNonNull(type), instance);
+    }
+
+   public <T> T getFavorite(Class<T> type) {
+       return type.cast(favorites.get(type));
+   }
+}
+{{/code}}
+
+<input type="radio" name="method14" value="doNotUseGenerics"> **Don't use generics**
+
+{{code language="java"}}
+public class Favorites {
+    private Map<Class<?>, Object> favorites = new HashMap<>();
+
+    public void putFavorite(Class<?> type, Object instance) {
+        favorites.put(Objects.requireNonNull(type), instance);
+    }
+
+   public Object getFavorite(Class<?> type) {
+       return favorites.get(type);
+   }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Both implementations let you create a map of favorite values to a variety of classes such as {{code language="java"}} String.class {{/code}}, {{code language="java"}} Integer.class {{/code}}. The first one would be preferable because it ensures that the value of a map item is an instance of the type stored in its key, and it doesn't require clients to cast the return value of {{code language="java"}} getFavorite {{/code}}.
+
+Note that a limitation of both implementations is that it cannot be used for a non-reifiable type such as {{code language="java"}} List<String> {{/code}} because there isn't a Class object for {{code language="java"}} List<String> {{/code}}. That is a good thing because if both {{code language="java"}} List<String>.class {{/code}} and {{code language="java"}} List<Integer>.class {{/code}} were legal and shared the same object reference {{code language="java"}} List.class {{/code}} then it would break the havoc with the internals of a {{code language="java"}} Favorites {{/code}} object. Unfortunately, there is no entirely satisfactory workaround for this limitation.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hmethod15">Exposed APIs and Documentation</h3>
+{{/html}}
+
+If an API is to be usable, it must be documented carefully. Here are some best practices:
+* **Precede //every exported// class, interface, constructor, method, and field declaration with a doc comment**.
+* ** The doc comment for a method should describe succinctly the //contract// between the method and its client**. You must respect that contract forever after the API is distributed wide and far.
+* **The doc comment should be readable both in the source code and in the generated documentation**. So, spend some time to read the generated documentation.
+* **Multiple members or constructors in a class or interface should not have the same summary description**.
+* **When documenting a generic type or method, be sure to document all type parameters**.
+* **When documenting an enum type, be sure to document the constants as well as the type and any public methods**.
+* **Whenever or not a class or static method is thread-safe, you should document its thread-safety level**.
+* **If a class is serializable then you should document its serialized form**.
+
+</div>
+
+<div class="tab-pane" id="Module5">
+
+==Exceptions==
+{{box}}
+**Objective**: This section provides guidelines for how to use exceptions effectively. When they are used properly, they can improve a program's readability, reliability, and maintainability; but when they are used poorly, they can have the opposite effect.
+
+**Key topics**:
+
+1. [[Exceptions for Exceptional Conditions Only>>.||anchor=Hexception1]]
+1. [[Checked Exceptions and Unchecked Exceptions>>.||anchor=Hexception2]]
+1. [[Standard Exceptions>>.||anchor=Hexception3]]
+1. [[Exception Translation>>.||anchor=Hexception4]]
+1. [[Exception Implementation>>.||anchor=Hexception5]]
+1. [[Exceptions and Failure Atomicity>>.||anchor=Hexception6]]
+
+**Estimated time**: 15-30 minutes.
+{{/box}}
+
+{{html}}
+<h3 id="Hexception1">Exceptions for Exceptional Conditions Only</h3>
+{{/html}}
+
+Which of the following implementations would be preferable? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="exception1" value="exception"> **Use exceptions**
+
+{{code language="java"}}
+public void displayCards() {
+    ...
+    try {
+        int i = 0;
+        while (true) {
+            cards[i++].displayMe();
+        }
+    } catch (ArrayIndexOutOfBoundsException e) {
+        ...
+    }
+} 
+{{/code}}
+
+<input type="radio" name="exception1" value="noException"> **Don't use exceptions**
+
+{{code language="java"}}
+public void displayCards() {
+    ...
+    for (Card card : cards) {
+        card.displayMe();
+    }
+    ...
+} 
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+**Exceptions should be used only for exceptional conditions, as their name implies**. A well-designed API should never force its clients to use exceptions for ordinary control flow. The second implementation above would be much cleaner than the first one.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hexception2">Checked Exceptions and Unchecked Exceptions</h3>
+{{/html}}
+
+Would the following implementation be appropriate?<br><br>
+
+{{code language="java"}}
+/**
+ * Returns MarketplaceInfo of a given marketplace.
+ * @throws NotFoundException if marketplaceId is not found; do not retry.
+ * @throws ServiceUnavailableException if MarketplaceService does not respond after 3 retries.
+ */
+public MarketplaceInfo getMarketplaceInfoById(MarketplaceId marketplaceId) {
+    try {
+        return getMarketplaceInfoByIdFromLocalCache(marketplaceId);
+    } catch (IOException e) {
+        MarketplaceInfo info = getMarketplaceInfoByIdFromRemoteCache(marketplaceId);
+        putMarketplaceInfoToLocalCache(marketplaceId, info);
+        return info;
+    } catch (IOException e) {
+        for (int numRetries = 0; numRetries < 3; numRetries++) {
+            try {
+                // Call dependent service to get marketplace info
+                MarketplaceInfo info = marketplaceService.getMarketplaceInfoById(marketplaceId);
+                putMarketplaceInfoToLocalCache(marketplaceId, info);
+                putMarketplaceInfoToRemoteCache(marketplaceId, info);                
+                return info;
+            } catch (ServiceUnavailableException e) {
+                sleep(5); // sleep 5 seconds before retry
+            } catch (NotFoundException e) {
+                LOG.error("Unable to get marketplace info because marketplace id {} is not found.", marketplaceId);
+                throw e;
+            }
+        }
+        throw new ServiceUnavailableException("Unable to get marketplace info after 3 retries.");
+    }
+}
+{{/code}}
+
+{{html wiki=true}}
+
+<input type="radio" name="exception2" value="appropriate"> **Yes**<br>
+
+<input type="radio" name="exception2" value="inappropriate"> **No**<br><br>
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+While designing/implementing an API, you should **throw checked exceptions, a subclass of {{code language="java"}} Exception {{/code}}, for recoverable conditions** and **unchecked exceptions, a subclass of {{code language="java"}} RuntimeException {{/code}}, for programming errors**. When in doubt, throw unchecked exceptions. When throwing checked exceptions, add methods to aid in recovery for clients. Note also that when used sparingly, checked exceptions can increase the reliability of programs; but when overused, they make APIs painful to use.
+
+You should **declare checked exceptions individually and document precisely the conditions under which each exception is thrown**, by using Javadoc {{code language="java"}} @throws {{/code}} tag. If the same exception is thrown by many methods in a class for the same reason then you can document it in the class's documentation comment. In addition, it is particularly important to document unchecked exceptions of methods in interfaces they may throw; **do not, however, use {{code language="java"}} throws {{/code}} keyword on unchecked exceptions**.
+
+If you are a caller of an API, **don't ignore any exception**, whether it is checked or unchecked, unless you have a good reason to do so. And if you choose to ignore it then you should name the variable {{code language="java"}} ignored {{/code}} and add a comment to the catch block to explain why it is appropriate to do so.
+
+The implementation above would be appropriate and show how good the design of APIs used the method could be. Firstly, {{code language="java"}} IOException {{/code}} is a checked exception, which requires clients to check it and provide recovery actions if possible. Secondly, {{code language="java"}} ServiceAvailableException {{/code}} is an unchecked exception, which doesn't require clients to check it but they could implement retry actions if they want to. Finally, {{code language="java"}} NotFoundException {{/code}}, another unchecked exception, indicates //precondition violations// or //programming errors//, meaning a failure by the client of the API to adhere to the contract established by this API specification. **This type of conditions is unrecoverable; retrying is just useless for clients and makes your service and its dependencies worse while they are struggling**.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hexception3">Standard Exceptions</h3>
+{{/html}}
+
+Which of the following implementations would be preferable? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="exception3" value="customExceptions"> **Use my exceptions**
+
+{{code language="java"}}
+public class MyIndexOutOfBoundsException extends IndexOutOfBoundsException {
+    ...
+}
+
+public static int searchValueAfterIndex(int[] a, int target, int startIndex) {
+    try {
+        ...
+    } catch (MyIndexOutOfBoundsException e) {
+        ...
+    }
+}
+{{/code}}
+
+<input type="radio" name="exception3" value="standardExceptions"> **Use standard exceptions**
+
+{{code language="java"}}
+public static int searchValueAfterIndex(int[] a, int target, int startIndex) {
+    try {
+        ...
+    } catch (ArrayIndexOutOfBoundsException e) {
+        ...
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Note that **a key difference between expert and novice software engineers is that the formers strive for and usually achieve a high degree of code reuse**. Exceptions are no exception to that rule. The Java libraries have already provided a set of exceptions that covers most of the exception-throwing needs of most APIs. You should reuse standard exceptions unless you have a very good reason to implement a new one. Here are some whys:
+* Your APIs will be easier to read, learn, and use because many programmers have already been familiar with standard exceptions.
+* Fewer exception classes mean a smaller memory footprint and less time spent to load classes.
+* Exceptions are serializable, and thus would require some care to write them.
+
+You should not reuse {{code language="java"}} Exception {{/code}} or {{code language="java"}} RuntimeException {{/code}} directly, but it is fine to reuse the following ones:
+* {{code language="java"}} NullPointerException {{/code}}: if parameter value is null where prohibited.
+* {{code language="java"}} IndexOutOfBoundsException {{/code}}: if index parameter value is out of range. If you want more specific then use {{code language="java"}} ArrayIndexOutOfBoundsException {{/code}} instead.
+* {{code language="java"}} UnsupportedModificationException {{/code}}: if object doesn't support method.
+* {{code language="java"}} ArithmeticException {{/code}}: if an exceptional arithmetic condition has occurred (e.g., divide by zero).
+* {{code language="java"}} NumberFormatException {{/code}}: if a string cannot be converted to a number (e.g., try to convert "12y34" to a number).
+* {{code language="java"}} ConcurrentModificationException {{/code}}: if concurrent modification of an object has been detected where it is prohibited.
+* {{code language="java"}} IllegalArgumentException {{/code}}: if any non-null parameter value is inappropriate (e.g., a negative number is passed to a non-negative parameter).
+* {{code language="java"}} IllegalStateException {{/code}}: if the invocation is illegal because of the state of receiving object or if no argument values would have worked (e.g., if the caller attempted to use some objects before it had been properly initialized).
+{{/showhide}}
+
+{{html}}
+<h3 id="Hexception4">Exception Translation</h3>
+{{/html}}
+
+Which of the following implementations would be preferable? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="exception4" value="translation"> **With exception translation**
+
+{{code language="java"}}
+public E get(int index) {
+    ListIterator<E> it = listIterator(index);
+    try {
+        return it.next();
+    } catch (NoSuchElementException) {
+        throw new IndexOutOfBoundsException("Index: " + index);
+    }
+}
+{{/code}}
+
+<input type="radio" name="exception4" value="noTranslation"> **Without exception translation**
+
+{{code language="java"}}
+public E get(int index) throws NoSuchElementException {
+    ListIterator<E> it = listIterator(index);
+    return it.next();
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In general, **higher layers should catch lower-level exceptions and, in their place, throw exceptions that can be explained in terms of the higher-level abstraction**, unless the lower-level exceptions have been already appropriate to the higher-level ones. This idiom is known as //exception translation//, whose main purpose is to make the exception consistent with the behavior of its API, but not of its dependences'. So, the first implementation above would be preferable. In some cases where the lower-level exception might be useful to someone debugging the problem that caused the higher-level exception, then you can pass the cause to the higher-level exception. For example:
+
+{{code language="java"}}
+try {
+    ...
+} catch (LowerLevelException cause) {
+    throw new HigherLevelException(cause);
+}
+{{/code}}
+
+**While exception translation is better than mindless propagation of exceptions from lower layers, you should not overuse it**. Where possible, the best way to handle exceptions from lower layers is to avoid them, by ensuring that the lower-level methods succeed. For instance, you can check the validity of the higher-level method's parameters before passing them to the lower-level method.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hexception5">Exception Implementation</h3>
+{{/html}}
+
+Which of the following implementations would be preferable? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="exception5" value="notDetailed"> **Do not provide detail messages**
+
+{{code language="java"}}
+public IndexOutOfBoundsException () {
+    super("Unable to continue due to index out of bounds.");
+}   
+{{/code}}
+
+<input type="radio" name="exception5" value="detailed"> **Provide detail messages**
+
+{{code language="java"}}
+public IndexOutOfBoundsException (int lowerBound, int upperBound, int index) {
+    super(String.format("Lower bound: %d, upper bound: %d, but index: %d.", lowerBound, upperBound, index));
+    // Save failure information for programmatic access
+    this.lowerBound = lowerBound;
+    this.upperBound = upperBound;
+    this.index = index;
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Note that the system automatically prints out an exception's stack trace when it is thrown. This stack trace contains the exception's class name and **detail message**. The latter is usually the only information that software engineers will have when they investigate a program failure. So, **it is very important that you provide as much //crucial// information as possible to help them out**; of course, do not provide annoying/unnecessary information. Here are some best practices:
+* The detail message of an exception should contain **the values of all parameters and fields that have contributed to the exception**.
+* **Do not include any sensitive information** such as passwords, encryption keys, customer names and emails, and so on in the detail message.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hexception6">Exceptions and Failure Atomicity</h3>
+{{/html}}
+
+Which of the following implementations of stack popping would be preferable? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="exception6" value="notPrecheck"> **Do not pre-check conditions**
+
+{{code language="java"}}
+public Object pop () {
+    Object result = elements[--size];
+    elements[size] = null; // Eliminate obsolete reference
+    return result;
+}   
+{{/code}}
+
+<input type="radio" name="exception6" value="precheck"> **Pre-check conditions**
+
+{{code language="java"}}
+public Object pop () {
+    if (size == 0) {
+        throw new EmptyStackException();
+    }
+    Object result = elements[--size];
+    elements[size] = null; // Eliminate obsolete reference
+    return result;
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In general, **it is desirable that after an object throws an exception it still be in a well-defined, consistent, usable state as it was before the invocation of a method** even if the exception is thrown in the middle of the method. This //failure-atomicity// property of the method is especially important for checked exceptions, from which the caller is expected to recover. There are several ways to achieve that property:
+* Design immutable objects.
+* Check parameters for validity before performing an operation (see the second implementation above).
+* Order the computation so that any part that may fail takes place before any part that may modify the object.
+* Perform the operation on a temporary copy of the object and replace the contents of the object with those of the copy if and once the operation is complete.
+* Write recovery/rollback code to restore the object to its initial state if a failure occurs.
+
+Note that achieving failure atomicity may significantly increase cost and complexity of the method; hence, it is not always desirable. In addition, in some situations it is not always achievable. For example, when {{code language="java"}} ConcurrentModificationException {{/code}} occurs it would be wrong to assume that the object is still consistent and usable; this kind of exceptions and {{code language="java"}} AssertionError {{/code}} are unrecoverable and you should not attempt to preserve failure atomicity.
+{{/showhide}}
+</div>
+
+<div class="tab-pane" id="Module6">
+
+==Lambdas and Streams==
+{{box}}
+**Objective**: In Java 8, **functional interfaces**, **lambdas**, **method references**, along with **streams API** were added to help software engineers create function objects and process sequences of data elements more easily. This section explains best practices of how to utilize those facilities.
+
+**Key topics**:
+
+1. [[Lambdas and Anonymous Classes>>.||anchor=Hlambda1]]
+1. [[Lambdas and Method References>>.||anchor=Hlambda2]]
+1. [[Lambdas and Functional Interfaces>>.||anchor=Hlambda3]]
+1. [[Streams>>.||anchor=Hlambda4]]
+1. [[Streams and Collections>>.||anchor=Hlambda5]]
+1. [[Parallel Streams>>.||anchor=Hlambda6]]
+
+**Estimated time**: 15-30 minutes.
+{{/box}}
+
+{{html}}
+<h3 id="Hlambda1">Lambdas and Anonymous Classes</h3>
+{{/html}}
+
+Which of the following implementations would be more readable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="lambda1" value="lambda1"> **Use lambda expressions**
+
+{{code language="java"}}
+Collections.sort(words, (w1, w2) -> Integer.compare(w1.length(), w2.length()));
+{{/code}}
+
+<input type="radio" name="lambda1" value="function1"> **Use function objects**
+
+{{code language="java"}}
+Collections.sort(words, new Comparator<String>() {
+    public int compare(String w1, String w2) {
+        return Integer.compare(w1.length(), w2.length();
+    }
+});
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In general, **lambdas are by far the best way to represent //small// functional objects** because it makes the code less verbose and thus more readable. In the above example, the compiler can deduce the types of parameters, but if in other situations it throws an error then you can add them easily. Note that few software engineers understand how the rules for type reference work but it is okay. Note also that lambdas lack names and documentation; so, **if a computation isn't self-explanatory, or exceeds few lines, then don't use them**. Furthermore, lambdas share with anonymous classes the property that **you can't reliably serialize and deserialize them** across implementations; hence, don't use them, but use an instance of a private static nested class, if you want to do so.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hlambda2">Lambdas and Method References</h3>
+{{/html}}
+
+The goal of the following code snippets is to associate 1 with the key if it is not in the map; otherwise increment the associated value. Which snippet would be more readable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="lambda2" value="lambda2"> **Use lambda expressions**
+
+{{code language="java"}}
+map.merge(key, 1, (count, incr) -> count + incr);
+{{/code}}
+
+<input type="radio" name="lambda2" value="methodReference2"> **Use method references**
+
+{{code language="java"}}
+map.merge(key, 1, Integer::sum);
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+Method references often provide a more succinct alternative to lambdas; therefore, **use the former wherever they are shorter and clearer than the latter**. Here are some common method references:
+* {{code language="java"}} Integer::parseInt {{/code}}: A static method reference for {{code language="java"}} str -> Integer.parseInt(str) {{/code}}.
+* {{code language="java"}} Instant.now()::isAfter {{/code}}: A bound method reference for {{code language="java"}} Instance i = Instant.now(); t -> i.isAfter(t) {{/code}}.
+* {{code language="java"}} String::toLowerCase {{/code}}: An unbound method reference for {{code language="java"}} str -> str.toLowerCase() {{/code}}.
+* {{code language="java"}} TreeMap<K,V>::new {{/code}}: A class constructor for {{code language="java"}} () -> new TreeMap<K,V> {{/code}}.
+* {{code language="java"}} int[]::new {{/code}}: An array constructor for {{code language="java"}} len -> new int[len] {{/code}}.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hlambda3">Lambdas and Functional Interfaces</h3>
+{{/html}}
+
+You can use {{code language="java"}} LinkedHashMap {{/code}} class as a cache. If you were the designer of this class, which of the following implementations would you prefer?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="lambda3" value="method3"> **Use protected methods**
+
+{{code language="java"}}
+public class LinkedHashMap<K,V> extends HashMap<K,V> implements Map<K,V> {
+    ...
+    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) { return false; }
+    ...
+}
+
+// Example of how to use LinkedHashMap
+...
+LinkedHashMap<String, String> map = new LinkedHashMap<String, String>() {
+    // This method is invoked by put and putAll after inserting a new entry into the map.
+    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+        return size() > 120;
+    }
+};
+...
+{{/code}}
+
+<input type="radio" name="lambda3" value="standardInterface3"> **Use standard interfaces**
+
+{{code language="java"}}
+public class LinkedHashMap<K,V> extends HashMap<K,V> implements Map<K,V> {
+    ...
+    // removeEldestEntry.test is invoked by put and putAll after inserting a new entry into the map.
+    public LinkedHashMap(BiPredicate<Map<K,V>, Map.Entry<K,V>> removeEldestEntry) { ... }
+    ...
+}
+
+// Example of how to use LinkedHashMap
+...
+LinkedHashMap<String, String> map = new LinkedHashMap<String, String>((m, e) -> return m.size() > 120);
+...
+{{/code}}
+
+<input type="radio" name="lambda3" value="customInterface3"> **Use my functional interfaces**
+
+{{code language="java"}}
+// Always annotate your functional interfaces with @FunctionalInterface
+@FunctionalInterface interface EldestEntryRemovalFunction<K,V> {
+    boolean remove(Map<K,V> map, Map.Entry<K,V> eldest);
+}
+
+public class LinkedHashMap<K,V> extends HashMap<K,V> implements Map<K,V> {
+    ...
+    // removeEldestFunction.remove is invoked by put and putAll after inserting a new entry into the map.
+    public LinkedHashMap(EldestEntryRemovalFunction<K,V> removeEldestFunction) { ... }
+    ...
+}
+
+// Example of how to use LinkedHashMap
+...
+LinkedHashMap<String, String> map = new LinkedHashMap<String, String>((m, e) -> return m.size() > 120);
+...
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+You should utilize lambdas facility when you design your APIs, meaning accept functional interface types on input and return them on output. In general, you should use standard interfaces in {{code language="java"}} java.util.function {{/code}}. You don't have to memorize them but should know some fundamental ones, as follows:
+|=Interface|=Function Signature|=Example
+|{{code language="java"}} UnaryOperator<T> {{/code}}|{{code language="java"}} T apply(T t) {{/code}}|{{code language="java"}} String::toLowerCase {{/code}}
+|{{code language="java"}} BinaryOperator<T> {{/code}}|{{code language="java"}} T apply(T t1, T t2) {{/code}}|{{code language="java"}} BigInteger::add {{/code}}
+|{{code language="java"}} Predicate<T> {{/code}}|{{code language="java"}} boolean test(T t) {{/code}}|{{code language="java"}} Collection::isEmpty {{/code}}
+|{{code language="java"}} Function<T> {{/code}}|{{code language="java"}} R apply(T t) {{/code}}|{{code language="java"}} Arrays::asList {{/code}}
+|{{code language="java"}} Supplier<T> {{/code}}|{{code language="java"}} T get() {{/code}}|{{code language="java"}} Instant::now {{/code}}
+|{{code language="java"}} Consumer<T> {{/code}}|{{code language="java"}} void accept(T t) {{/code}}|{{code language="java"}} System.out::println {{/code}}
+
+Note that there are many variants of the above interfaces to operate on primitive types {{code language="java"}} int {{/code}}, {{code language="java"}} long {{/code}}, and {{code language="java"}} double {{/code}}. **You should use them wherever possible because the performance consequences of using boxed primitives for batch operations can be deadly**. Note also that our old friend {{code language="java"}} Comparator<T> {{/code}}, which is structurally identical to {{code language="java"}} ToIntBiFunction<T,T> {{/code}} interface, has been very popular and provides excellent self-documentation every time it is used in an API. Hence, **you should consider using {{code language="java"}} Comparator<T> {{/code}} first before deciding if you should try functional interfaces**.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hlambda4">Streams</h3>
+{{/html}}
+
+You are writing a program to read words from a dictionary and print all the anagram groups whose size meets a user-specified minimum. Which of the following implementations would be preferable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="lambda4" value="lambdaAndMethod4"> **Use streams and helper methods**
+
+{{code language="java"}}
+public class Anagrams {
+    public static void main(String[] args) throws IOException {
+        Path dictionary = Paths.get(args[0]);
+        int minGroupSize = Integer.parseInt(args[1]);
+        try (Stream<String> words = Files.lines(dictionary)) {
+            words.collect(groupingBy(word -> alphabetize(word))).values().stream()
+            .filter(group -> group.size() >= minGroupSize)
+            .forEach(g -> System.out.println(g.size() + ": " + g));
+        }
+    }
+    
+    private static String alphabetize(String word) {
+        return new String(Arrays.sort(word.toCharArray()));
+    }
+}
+{{/code}}
+
+<input type="radio" name="lambda4" value="lambda4"> **Use streams only**
+
+{{code language="java"}}
+public class Anagrams {
+    public static void main(String[] args) throws IOException {
+        Path dictionary = Paths.get(args[0]);
+        int minGroupSize = Integer.parseInt(args[1]);
+        try (Stream<String> words = Files.lines(dictionary)) {
+            words.collect(groupingBy(word -> word.chars().sorted()
+                                             .collect(StringBuilder::new,
+                                                      (sb, c) -> sb.append((char) c),
+                                                      StringBuilder::append)
+                                             .toString()))
+            .values().stream()
+            .filter(group -> group.size() >= minGroupSize)
+            .map(group -> group.size() + ": " + group)
+            .forEach(System.out::println);
+        }
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+A stream pipeine consists of a source stream followed by zero or more //intermediate operations// and one //terminal operation//. The purpose of the former is to transform one stream into another, such as mapping each element to a function of that element or filtering out all elements that do not satisfy some condition. The goal of the latter is to perform a final/return computation on the stream resulting from the last intermediate operation. Here are some things you should know about streams:
+* **Stream pipelines are evaluated //lazily//**, meaning that evaluation starts only after the terminal operation is invoked and data elements that are not required in the computation of the terminal operation will be never evaluated. This property enables you to work with infinite streams. Note that a stream pipeline without a terminal operation is a silent no-op; so, you would be better off always implementing this operation.
+* **Streams API is //fluent//**, allowing you to make multiple calls on one or multiple pipelines in a single expression.
+* **By default, stream pipelines run //sequentially//**. It is possible to make it run in //parallel//, but this is a rare case.
+* You should only use {{code language="java"}} forEach {{/code}} as the terminal operation to report the result of a computation, not to perform the computation.
+* The essence of programming streams pipelines is **side-effect-free** function objects. You should be familiar with important collector factories such as {{code language="java"}} toList {{/code}}, {{code language="java"}} toSet {{/code}}, {{code language="java"}} toMap {{/code}}, {{code language="java"}} groupingBy {{/code}}, and {{code language="java"}} joining {{/code}}.
+* **Some tasks are best accomplished with streams, and others with iteration; in many cases, combining the two approaches would be preferable**. The first implementation above is preferable because it is more readable and maintainable than the second one that overuses streams.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hlambda5">Streams and Collections</h3>
+{{/html}}
+
+Which of the following implementations would be preferable if the size of the input list is large?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="lambda5" value="lambda5"> **Return streams**
+
+{{code language="java"}}
+// Returns a stream of all sublists of its input list
+public class SubLists {
+    public static <E> Stream<List<E>> of(List<E> list) {
+        return Stream.concat(Stream.of(Collections.emptyList()),
+                             prefixes(list).flatMap(SubLists::suffixes));
+    }
+
+    private static <E> Stream<List<E>> prefixes(List<E> list) {
+        return IntStream.rangeClosed(1, list.size()).mapToObj(end -> list.subList(0, end));
+    }
+    
+    private static <E> Stream<List<E>> suffixes(List<E> list) {
+        return IntStream.range(0, list.size()).mapToObj(start -> list.subList(start, list.size()));
+    }
+}
+{{/code}}
+
+<input type="radio" name="lambda5" value="collection5"> **Return collections**
+
+{{code language="java"}}
+// Returns a collection of all sublists of its input list
+public class SubLists {
+    public static <E> Collection<List<E>> of(List<E> list) {
+        int n = list.size();
+        List<List<E>> result = new ArrayList<>(n * (n-1) / 2 + 1);
+        for (int i = 0; i < n; i++)
+            for (int j = i + 1; j <= n; j++)
+                result.add(list.subList(i, j));
+        result.add(Collections.emptyList());
+        return result;
+    }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+The above problem is **an exceptional case where returning a stream in the first implementation would be preferable** because although the second one looks simpler, the memory required to hold the return collection is quadratic in the size of the input list, which is unacceptable for large input lists. 
+
+Generally, when you write a method that returns a sequence of elements, note that some of your clients may want to process them as a stream while others may want to iterate over them. **You should try to accommodate both groups by returning a collection if reasonable**. If it is too costly to do so, like the above example however, then consider to return a {{code language="java"}} Stream {{/code}} or {{code language="java"}} Iterable {{/code}}, whichever seems more natural. If future releases of Java modify {{code language="java"}} Stream {{/code}} interface to extend {{code language="java"}} Iterable {{/code}} then feel free to return {{code language="java"}} Stream {{/code}} because it will allow clients to process the return as a stream or as an iteration.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hlambda6">Parallel Streams</h3>
+{{/html}}
+
+Can you spot a problem in the following method?<br><br>
+
+{{code language="java"}}
+// Generate the first 20 Mersene primes in the form of 2^p - 1 where p is a prime number
+Stream.iterate(TWO, BigInteger::nextProbablePrime)
+      .parallel()
+      .map(p -> TWO.pow(p.intValueExact()).subtract(ONE)
+      .filter(mersene -> mersene.isProbablePrime(50))
+      .limit(20)
+      .forEach(System.out::println);
+{{/code}}
+
+<input type="radio" name="lambda61" value="noParallel61"> **Yes**<br>
+
+<input type="radio" name="lambda61" value="parallel61"> **No**<br><br>
+
+Which of the following implementations would be faster?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="lambda62" value="parallel62"> **Use parallel streams**
+
+{{code language="java"}}
+static long numberOfPrimes(long n) {
+    return LongStream.rangeClosed(2, n)
+                     .parallel()
+                     .mapToObj(BigInteger::valueOf)
+                     .filter(i -> i.isProbablePrime(50)
+                     .count();
+}
+{{/code}}
+
+<input type="radio" name="lambda62" value="noParallel62"> **Do not use parallel streams**
+
+{{code language="java"}}
+static long numberOfPrimes(long n) {
+    return LongStream.rangeClosed(2, n)
+                     .mapToObj(BigInteger::valueOf)
+                     .filter(i -> i.isProbablePrime(50)
+                     .count();
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In general, **do not even attempt to parallelize a stream pipeline unless you have a very good reason that it will preserve the correctness of the computation and increase its performance**, otherwise it can cause liveness and/or safety failures or performance disaster. If you choose to do it then you should ensure that your code remains correct when run in parallel, and you should collect performance metrics under realistic conditions to justify your decision. Under the right circumstances, it is possible to achieve **near-linear speedup in the number of processor cores simply by adding a {{code language="java"}} parallel {{/code}} call to a stream pipeline**. Here are things you should consider before you choose to parallelize a stream pipeline:
+* It is **unlikely to increase performance** of a stream pipeline if its source is from **{{code language="java"}} Stream.iterate {{/code}}**, or the intermediate operation **{{code language="java"}} limit {{/code}}** is used. In the first example above, the pipeline has to contend with both problems and the streams library has no idea how to parallelize the pipeline.
+* As a rule, it is **likely to gain performance** on streams over instances of **{{code language="java"}} ArrayList {{/code}}**, **{{code language="java"}} HashMap {{/code}}**, **{{code language="java"}} HashSet {{/code}}**, **{{code language="java"}} ConcurrentHashMap {{/code}}**; **{{code language="java"}} arrays {{/code}}**; **{{code language="java"}} int {{/code}} ranges**; and **{{code language="java"}} long {{/code}} ranges**; because they can be accurately and cheaply split into subranges of any desired size, making it easy to divide work among parallel threads. In the second example above, the parallel stream can be 3 to 4 times faster than the other one on a quad-core machine.
+{{/showhide}}
+</div>
+
+<div class="tab-pane" id="Module7">
+
+==Concurrency==
+{{box}}
+**Objective**: Threads enable multiple tasks to proceed concurrently. Concurrent programming is more difficult than single-threaded one because more things can go wrong, and it is hard to reproduce failures. But concurrency is a must in modern programming to utilize multicore processors! This section provides advice to help you **write clear, correct, well-documented concurrent programs**.
+
+**Key topics**:
+
+1. [[Synchronize Access to Sharable Mutable Data>>.||anchor=Hconcurrency1]]
+1. [[Excessive Synchronization>>.||anchor=Hconcurrency2]]
+1. [[Concurrentcy Utilities>>.||anchor=Hconcurrency3]]
+1. [[Concurrentcy and Lazy Initialization>>.||anchor=Hconcurrency4]]
+
+**Estimated time**: 15-30 minutes.
+{{/box}}
+
+{{html}}
+<h3 id="Hconcurrency1">Synchronize Access to Sharable Mutable Data</h3>
+{{/html}}
+
+Which program below won't stop as expected?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="concurrency11" value="noVolatile11"> **Don't use volatile**
+
+{{code language="java"}}
+public class StopThread {
+    private static boolean stopRequested;
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread thread = new Thread(() -> {
+            int i = 0;
+            while (!stopRequested) i++;
+        });
+        thread.start();
+        
+        TimeUnit.SECONDS.sleep(1);
+        stopRequested = true;
+    }
+}
+{{/code}}
+
+<input type="radio" name="concurrency11" value="volatile11"> **Use volatile**
+
+{{code language="java"}}
+public class StopThread {
+    private static volatile boolean stopRequested;
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread thread = new Thread(() -> {
+            int i = 0;
+            while (!stopRequested) i++;
+        });
+        thread.start();
+        
+        TimeUnit.SECONDS.sleep(1);
+        stopRequested = true;
+    }
+}
+{{/code}}
+
+{{/html}}
+
+Can you spot a bug in one of the following snippets?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="concurrency12" value="volatile12"> **Use volatile**
+
+{{code language="java"}}
+private static volatile int nextSerialNumber = 0;
+
+public static int generateSerialNumber() {
+    return nextSerialNumber++;
+}
+{{/code}}
+
+<input type="radio" name="concurrency12" value="atomic12"> **Use atomic facilities**
+
+{{code language="java"}}
+private static final AtomicLong nextSerialNumber = new AtomicLong();
+
+public static long generateSerialNumber() {
+    return nextSerialNumber.getAndIncrement();
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+**When multiple threads share mutable data, each thread that reads //or// writes the data must perform synchronization**, otherwise there is no guarantee that one thread's changes of the data will be visible to other threads, and therefore may cause liveness and safety failures. **These failures are among the most difficult to debug**. In the first example above, the use of {{code language="java"}} volatile {{/code}} is a correct alternative for synchronization because you need only inter-thread communication, but not mutual exclusion. Without its use, the thread won't stop, causing a //liveness failure//. But in the second example, its use is inappropriate because the increment operator (++) is not atomic. It performs two operations on {{code language="java"}} nextSerialNumber {{/code}}: (1) it reads the value, (2) it writes back a new value that is equal to the old value plus one. If a second thread reads the field between the time the first thread reads the old value and writes back the new one, then both threads will see the same value and thus return the same serial number, **OUCH**; this is a //safety failure//.
+
+Note that **the best way to avoid //safety failure// is not to share mutable data, meaning share only immutable data or don't share at all** — confine mutable data to a single thread. If you adopt this policy then you should document it carefully, so that the policy is maintained as your program evolves. It is also crucial to have a deep understanding of the frameworks and libraries you're using because they may introduce threads that you are unaware of.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hconcurrency2">Excessive Synchronization</h3>
+{{/html}}
+
+Assume that you are implementing an //observable// set wrapper that enables clients to subscribe/unsubscribe to notifications when elements are added to the set or removed from the set, as follows:
+
+{{code language="java"}}
+@FunctionalInterface public interface  SetObserver<E> {
+    void added(ObservableSet<E> set, E element);
+}
+
+public class ObservableSet<E> extends ForwardingSet<E> {
+    ...
+    private final List<SetObserver<E>> observers = new ArrayList<>();
+
+    public void addObserver(SetObserver<E> observer) { ... }
+    public void removeObserver(SetObserver<E> observer) { ... }
+
+    private void notifyElementAdded(E element) { ... }
+
+    @Override public boolean add(E element) {
+        boolean added = super.add(element);
+        if (added)
+            notifyElementAdded(element);
+        return added;
+    }
+    ...
+}
+
+// An example of use of ObservableSet
+public static void main(String[] args] {
+    ObservableSet<Integer> set = new ObservableSet<>(new HashSet<>());
+    set.addObserver(new SetObserver<>() {
+        public void added(ObservableSet<Integer> s, Integer e) {
+            System.out.println(e);
+            if (e == 5)
+                s.removeObserver(this);
+        }
+    });
+    for (int i = 0; i < 10; i++)
+        set.add(i);
+}
+{{/code}}
+
+Can you spot a bug in one of the following implementations of {{code language="java"}} notifyElementAdded {{/code}}?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="concurrency2" value="noSnapshot2"> **Do not use snapshot of observers**
+
+{{code language="java"}}
+private void notifyElementAdded(E element) {
+    synchronized(observers) {
+        for (SetObserver<E> observer : observers)
+            observer.added(this, element);
+    }
+}
+{{/code}}
+
+<input type="radio" name="concurrency2" value="snapshot2"> **Use snapshot of observers**
+
+{{code language="java"}}
+private void notifyElementAdded(E element) {
+    List<SetObserver<E>> snapshot = null;
+    synchronized(observers) {
+        snapshot = new ArrayList<>(observers);
+    }
+    for (SetObserver<E> observer : snapshot)
+        observer.added(this, element);
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+{{code language="java"}} observer.added {{/code}} is an //alien// method from clients for which you don't, actually can't, know how it works. So, **you should be better off NOT including any alien method invocation in your synchronized code**. The first implementation above will throw a {{code language="java"}} ConcurrentModificationException {{/code}} because {{code language="java"}} notifyElementAdded {{/code}} is in the synchronized/locked process of iterating over {{code language="java"}} observers {{/code}} when it invokes the observer's {{code language="java"}} added {{/code}} alien method, which calls the observable set's {{code language="java"}} removeObserver {{/code}} method, which in turn calls {{code language="java"}} observers.remove {{/code}} method. This example shows only an exception problem, but in other circumstances it may cause catastrophic issues such as deadlock.
+
+It is usually not too difficult to fix the sort of above problems by **moving alien method invocations out of synchronized blocks** such as the second implementation above. Note that this implementation can be improved by using {{code language="java"}} CopyOnWriteArrayList {{/code}} from {{code language="java"}} java.util.concurrent {{/code}} package. You should utilize this package when working on concurrency. Here are some other best practices:
+* **You should do as little work as possible inside synchronized regions**: obtain the lock, examine shared data, transform it if necessary, and drop the lock. If you must perform time-consuming tasks then find a way to move them out of synchronized blocks without violating guidelines in the previous sub-section.
+* If you are writing a mutable class, you can **omit all synchronization, document that the class is not thread-safe, and allow clients to synchronize externally if they want to**. {{code language="java"}} StringBuilder {{/code}} and {{code language="java"}} ThreadLocalRandom {{/code}} follow this guideline.
+* If you are writing a mutable class, **you should choose to synchronize internally only if you can achieve significantly higher concurrency**. And if you do so, you should use good techniques such as //lock splitting//, //lock stripping//, and //nonblocking concurrency control//. Classes in {{code language="java"}} java.util.concurrent {{/code}} package follow this guideline.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hconcurrency3">Concurrency Utilities</h3>
+{{/html}}
+
+Which of the following implementations that simulate the behavior of {{code language="java"}} String.intern {{/code}} is faster?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="concurrency3" value="noGet3"> **Don't use Map.get**
+
+{{code language="java"}}
+private static final ConcurrentMap<String, String> map = new ConcurrentHashMap<>();
+
+public static String intern(String s) {
+    String previousValue = map.putIfAbsent(s, s);
+    return previousValue == null ? s : previousValue;
+}
+{{/code}}
+
+<input type="radio" name="concurrency3" value="get3"> **Use Map.get**
+
+{{code language="java"}}
+private static final ConcurrentMap<String, String> map = new ConcurrentHashMap<>();
+
+public static String intern(String s) {
+    String result = map.get(s);
+    if (result == null) {
+        result = map.putIfAbsent(s);
+        if (result == null)
+            return s;
+    }
+    return result;
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+The second implementation could be six times faster than the first one, because **{{code language="java"}} ConcurrentHashMap {{/code}} is optimized for retrieval operations** such as {{code language="java"}} get {{/code}}. You should have a deep understanding of {{code language="java"}} java.util.concurrent {{/code}} package, to be able to utilize its many concurrent utilities. Here are some other recommendations:
+* **Prefer executors, tasks, and streams, to threads** wherever possible.
+* **Prefer {{code language="java"}} ConcurrentHashMap {{/code}} to {{code language="java"}} Collections.synchronizedMap {{/code}}.
+* If you have to use lock fields, **you should always declare them as {{code language="java"}} final {{/code}}**.
+* If you have to fix a program that barely works (e.g., some of its threads are unnecessarily runnable) then **don't depend on thread scheduler** (e.g., rely on {{code language="java"}} Thread.yield {{/code}} or thread priorities, because the resulting program will be neither robust nor portable. You should consider to restructure the application, by using guidelines in this section, to reduce the number of concurrently runnable threads.
+
+Whether or not you choose concurrent utilities to avoid implementing internal synchronization, you should always document what level of thread safety it supports, so as to enable safe concurrent use of your class. Here are some common levels:
+* **Immutable**: No external synchronization is necessary. Examples include {{code language="java"}} String {{/code}}, {{code language="java"}} Long {{/code}}, and {{code language="java"}} BigInteger {{/code}}.
+* **Unconditionally thread-safe**: Instances of this lass are mutable, but no external synchronization is necessary because the class has sufficient internal synchronization. Examples include {{code language="java"}} AtomicLong {{/code}} and {{code language="java"}} ConcurrentHashMap {{/code}}.
+* **Conditionally thread-safe**: Like conditionally thread-safe, but some methods require external synchronization. Examples include collections returned by {{code language="java"}} Collections.synchronized {{/code}} wrappers, whose iterators require external synchronization.
+* **Not thread-safe**: Instances of this class are mutable, and to use them clients must surround each method invocation or invocation sequence with external synchronization. Examples include general-purpose collections such as {{code language="java"}} ArrayList {{/code}} and {{code language="java"}} HashMap {{/code}}.
+* **Thread-hostile**: This class is unsafe for concurrent use; it must be fixed or deprecated. Examples include {{code language="java"}} generateSerialNumber {{/code}} at the beginning of this section.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hconcurrency4">Concurrency and Lazy Initialization</h3>
+{{/html}}
+
+Which of the following implementations would be preferable?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="concurrency4" value="synchronizedAccessor4"> **Use synchronized accessors**
+
+{{code language="java"}}
+private FieldType field;
+
+private synchronized FieldType getField() {
+    if (field == null)
+        field = computeFieldValue();
+    return field;
+}
+{{/code}}
+
+<input type="radio" name="concurrency4" value="singleCheck4"> **Use single-check idiom**
+
+{{code language="java"}}
+private volatile FieldType field;
+
+private synchronized FieldType getField() {
+    FieldType result = field;
+    if (field == null) // Single check, no locking
+        field = result = computeFieldValue();
+    return field;
+}
+{{/code}}
+
+<input type="radio" name="concurrency4" value="doubleCheck4"> **Use double-check idiom**
+
+{{code language="java"}}
+private volatile FieldType field;
+
+private synchronized FieldType getField() {
+    FieldType result = field;
+    if (field == null) { // First field check, no locking
+        synchronized(this) {
+            if (field == null) // Second field check, with locking
+                field = result = computeFieldValue();
+        }
+    }
+    return field;
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+In general, you should initialize most fields normally, such as {{code language="java"}} private final FieldType field = computeFieldValue(); {{/code}}. If you have to initialize a field lazily to achieve your performance goals or to break a harmful initialization circularity, then use an appropriate lazy initialization technique. **Use the double-check idiom for instance fields** (see the third implementation above), or **use the single-check idiom if you can tolerate repeated initialization** (see the second implementation above). **For static fields, however, use the holder class idiom**, as follows:
+
+{{code language="java"}}
+private static class FieldHolder {
+    static final FieldType field = computeFieldValue();
+}
+
+private static FieldType getField() {
+    return FieldHolder.field;
+}
+{{/code}}
+{{/showhide}}
+</div>
+
+<div class="tab-pane" id="Module8">
+
+==Serialization==
+{{box}}
+**Objective**: This section **explains the dangers of serialization and how to minimize them**. //Object serialization// is Java's useful framework for encoding objects as byte streams (//serializing//) and reconstructing objects from their encodings (//deserializing//). Once objects have been serialized, they can be sent from one virtual machine to another or stored on disk for later deserialization.
+
+**Key topics**:
+
+1. [[Java Serialization>>.||anchor=Hserialization1]]
+1. [[Custom Serialization>>.||anchor=Hserialization2]]
+1. [[Serialization and Security>>.||anchor=Hserialization3]]
+1. [[Serialization and Instance Control>>.||anchor=Hserialization4]]
+1. [[Serialization Proxy>>.||anchor=Hserialization5]]
+
+**Estimated time**: 15-30 minutes.
+{{/box}}
+
+{{html}}
+<h3 id="Hserialization1">Java Serialization</h3>
+{{/html}}
+
+Can you spot a problem when you **deserialize** the following byte stream?<br><br>
+
+{{code language="java"}}
+static byte[] createByteStream() {
+    Set<Object> root = new HashSet<>();
+    Set<Object> s1 = root;
+    Set<Object> s2 = new HashSet<>();
+    for (int i = 0; i < 100; i++) {
+        Set<Object> t1 = new HashSet<>();
+        Set<Object> t2 = new HashSet<>();
+        t1.add("beer"); // t1 is NOT equal to t2
+        s1.add(t1); s1.add(t2);
+        s2.add(t1); s2.add(t2);
+        s1 = t1;
+        s2 = t2;
+    }
+    return serialize(root); // Method omitted for brevity
+}
+{{/code}}
+
+{{html wiki=true}}
+
+<input type="radio" name="serialization1" value="yes1"> **Yes**<br>
+
+<input type="radio" name="serialization1" value="no1"> **No**<br><br>
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+{{html wiki=true}}
+It is difficult to spot the problem when you deserialize the above stream, just by reading the code. The above object graph consists of 203 {{code language="java"}} HashSet {{/code}} instances, each of which contains 3 or fewer object references. The entire stream is 5,744 bytes long, yet the sun would burn out before you could deserialize it! To understand what happens, note that **deserializing a {{code language="java"}} HashSet {{/code}} instance requires computing the hash codes of all of its elements**. The 2 elements of {{code language="java"}} root {{/code}} are also hash sets that contain 2 hash-set elements, each of which contains 2 hash-set elements, and so forth, **100 levels deep**! Hence, {{code language="java"}} hashCode {{/code}} method will be invoked over **2<sup>100</sup> times** to deserialize {{code language="java"}} root {{/code}}, **OUCH**! So, **you should avoid using Java serialization wherever possible; you should use a cross-platform, structured-data representation such as JSON instead**. If you must use Java serialization then **you should NOT deserialize any byte stream that you don't trust, by creating a whitelist of trusted classes instead of a blacklist of untrusted classes** (by default you should reject classes that are not included in the whitelist).
+<br><br>
+If you choose to implement {{code language="java"}} Serializable {{/code}} interface, however, you must be absolutely aware of what you are doing. Here are some major costs of doing so:
+* **It decreases the flexibility to change your class's implementation once it has been released**, because its byte-stream encoding or //serialized form// becomes part of its exported API and you must support it forever.
+* **It increases the likelihood of bugs and security holes**, because it provides an //extralinguistic mechanism// for clients to create instances of your class.
+* **It increases the testing burden associated with releasing a new version your class**, because of backward compatibility, meaning that you must ensure that the new version of your class can deserialize the serialized form of the old version and vice versa.
+<br><br>
+Here are some recommendations you should consider before you decide to implement {{code language="java"}} Serializable {{/code}} interface:
+* **Classes designed for inheritance should rarely implement {{code language="java"}} Serializable {{/code}}**, because you don't, actually cant', know what its subclasses will do.
+* **Inner classes should not implement {{code language="java"}} Serializable {{/code}}**, because the default serialized form of an inner class is ill-defined. You can, however, implement the interface for //a static member class//.
+{{/html}}
+{{/showhide}}
+
+{{html}}
+<h3 id="Hserialization2">Custom Serialization</h3>
+{{/html}}
+
+Which of the following implementations of {{code language="java"}} StringList {{/code}} would be better? Of course, ignore for the moment that you would probably better off using one of the standard {{code language="java"}} List {{/code}} implementations.<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="serialization2" value="default2"> **Use default serialized forms**
+
+{{code language="java"}}
+public final class StringList implements Serializable {
+    private int size = 0;
+    private Entry head = null;
+
+    private static class Entry implements Serializable {
+        String data;
+        Entry next;
+        Entry previous;
+    }
+    ... // Remainder omitted
+}
+{{/code}}
+
+<input type="radio" name="serialization2" value="custom2"> **Use custom serialized forms**
+
+{{code language="java"}}
+public final class StringList implements Serializable {
+    private int size = 0;
+    private Entry head = null;
+
+    private static class Entry {
+        String data;
+        Entry next;
+        Entry previous;
+    }
+
+    public final void add(String s) { ... }
+
+    private void writeObject(ObjectOutputStream s) throws IOException {
+        s.defaultWriteObject();
+        s.writeInt(size);
+        for (Entry e = head; e != null; e = e.next)
+            s.writeObject(e.data);
+    }
+
+    private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+        s.defaultReadObject();
+        int numElements = s.readInt();
+        for (int i = 0; i < numElements; i++)
+            add((String) s.readObject());
+    }
+    ... // Remainder omitted
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+**You should use the default serialized form //only if// an object's physical representation is identical to its logical content**, such as a {{code language="java"}} Person {{/code}} object that contains first and last names. In the above example, you should use the custom serialized  form because logically {{code language="java"}} StringList {{/code}} represents a sequence of strings but physically it represent a sequence of a doubly linked list. Note that **using the default serialized form when an object's physical representation differs substantially from its logical content has the following advantages**:
+* **It permanently ties the exported API to the current internal representation**, and you must support it forever. For example, in the above example {{code language="java"}} StringList.Entry {{/code}} class becomes part of the public API unnecessarily.
+* **It can consume excessive space, sometimes cause stack overflow, and make serialization slow**. In the above example, links of the doubly linked list will take a lot of space and time to serialize/deserialize them, again unnecessarily.
+
+Here are some other recommendations:
+* **You often must implement {{code language="java"}} readObject {{/code}} method to ensure invariants and security**, even if you decide to choose the default serialized form. For example, transient fields (i.e., not included in serialization) will be initialized to their //default values// when an instance is deserialized ( {{code language="java"}} null {{/code}} for object reference fields, {{code language="java"}} zero {{/code}} for numeric primitive fields, and {{code language="java"}} false {{/code}} for boolean fields). If these values are unacceptable for any transient fields then implementing {{code language="java"}} readObject {{/code}} would be a good way to restore them to acceptable values.
+* **Before deciding to make a field nontransient (i.e., included in serialization), convince yourself that its value is part of the logical state of the object**, so as to avoid complications such as the one mentioned above.
+* In any case, **you should impose any synchronization on object serialization that you would impose on any other method that reads the entire state of the object**.
+* In any case, **you should declare an explicit, static, final, long serialVersionUID in every serializable class you write**, just in case you want to break compatibility, though not recommended, with all existing serialized instances of your class.
+* Use {{code language="java"}} @serial {{/code}} tag for fields and {{code language="java"}} @serialData {{/code}} tag for methods to document your serializable class properly.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hserialization3">Serialization and Security</h3>
+{{/html}}
+
+The following implementation preserves the class's invariants and immutability by defensively copying {{code language="java"}} Date {{/code}} object in its constructor and accessors, **before it is serializable**:<br><br>
+
+{{code language="java"}}
+public final class Period implements Serializable {
+    private final Date start;
+    private final Date end;
+
+    public Period(Date start, Date end) {
+        this.start = new Date(start.getTime());
+        this.end = new Date(end.getTime());
+        if (this.start.compareTo(this.end) > 0)
+            throw new IllegalArgumentException(start + " after " + end);
+    }
+
+    public Date start() { return new Date(start.getTime()); }
+    public Date end() { return new Date(end.getTime()); }
+    ... // Remainder omitted
+}
+{{/code}}
+
+After it is serializable, just by easily adding {{code language="java"}} implements Serializable {{/code}} to the class declaration, {{code language="java"}} readObject {{/code}} method is effectively **another public constructor**. So, if you use a default serialized form then you get into a big trouble, because that default method **fails to do check validity of its arguments and make defensive copies of parameters where appropriate**, meaning that you open the door for **an attacker to violate the class's invariants**. Therefore, you must implement custom {{code language="java"}} readObject {{/code}}. Which of the following implementations would be safe? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="serialization3" value="validityCheck3"> **Keep it simple**
+
+{{code language="java"}}
+private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+    s.defaultReadObject();
+    if (start.compareTo(end) > 0)
+        throw new InvalidObjectException(start + " after " + end);
+}
+{{/code}}
+
+<input type="radio" name="serialization3" value="both3"> **Be extremely defensive**
+
+{{code language="java"}}
+private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+    s.defaultReadObject();
+    start = new Date(start.getTime());
+    end = new Date(end.getTime());
+    if (start.compareTo(end) > 0)
+        throw new InvalidObjectException(start + " after " + end);
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+**When an object is serialized, it is crucial to copy any field containing an object reference that a client must not possess**, otherwise you open the door for **an attacker to violate the class's invariants**.  Note that the **defensive copy is performed prior to the validity check**, otherwise the class can be subject to an attack between the time of validity check and the time of defensive copy in a multi-thread circumstance. Note also that **using {{code language="java"}} Date.clone {{/code}} is not safe** because attackers can use a subclass of {{code language="java"}} Date {{/code}} and you don't/can't know what the subclass's clone method behaves. Additionally, to use the second implementation above, you must make {{code language="java"}} start {{/code}} and {{code language="java"}} end {{/code}} nonfinal; which is unfortunate but it is the lesser of the two evils.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hserialization4">Serialization and Instance Control</h3>
+{{/html}}
+
+Which of the following implementations would be safe? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="serialization4" value="enum4"> **Use Enum**
+
+{{code language="java"}}
+public Enum MichaelJackson {
+    INSTANCE;
+    private String[] favoriteSongs = { "Black and White", "Billie Jean", "Beat it" };
+
+    public void printFavorites() { System.out.println(Arrays.toString(favoriteSongs)); }
+}
+{{/code}}
+
+<input type="radio" name="serialization3" value="readResolve4"> **Use readResolve**
+
+{{code language="java"}}
+public class MichaelJackson implements Serializable {
+    public static final MichaelJackson INSTANCE = new Elvis();
+    private MichaelJackson() { }
+    private String[] favoriteSongs = { "Black and White", "Billie Jean", "Beat it" };
+
+    public void printFavorites() { System.out.println(Arrays.toString(favoriteSongs)); }
+
+    private readResolve() { return INSTANCE; }
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+The second implementation **opens the door for an attacker to secure a reference to the serialized object** before its {{code language="java"}} readResolve {{/code}} method is run. The attack is somewhat complicated, but it is based on a simple idea that if a singleton contains a nontransient object reference field then the contents of this field will be deserialized before the singleton's {{code language="java"}} readResolve {{/code}} method is run, regardless wether you use default or custom serialized form. This property enables the attacker to //steal// a reference to the originally deserialized singleton at the time the contents of the object reference field are deserialized. Therefore, **use enum type to enforce instance control invariants wherever possible**. If you must, however, implement {{code language="java"}} readResolve {{/code}} method for a serializable and instance-controllable class then **ensure that all of the class's instance fields are either //primitive// or //transient//**.
+{{/showhide}}
+
+{{html}}
+<h3 id="Hserialization5">Serialization Proxy</h3>
+{{/html}}
+
+Which of the following implementations would be preferable? Why?<br><br>
+
+{{html wiki=true}}
+
+<input type="radio" name="serialization4" value="proxy4"> **Use serialization proxy**
+
+{{code language="java"}}
+public final class Period implements Serializable {
+    private final Date start;
+    private final Date end;
+
+    public Period(Date start, Date end) {
+        this.start = new Date(start.getTime());
+        this.end = new Date(end.getTime());
+        if (this.start.compareTo(this.end) > 0)
+            throw new IllegalArgumentException(start + " after " + end);
+    }
+
+    public Date start() { return new Date(start.getTime()); }
+    public Date end() { return new Date(end.getTime()); }
+
+    private Object writeReplace() { return new SerializationProxy(this); }
+
+    private void readObject (ObjectInputStream s) throws InvalidObjectException {
+        throw new InvalidObjectException("Proxy required");
+    }
+
+    private static class SerializationProxy implements Serializable {
+        private static final long = 982423404852382358L; // Any number would be fine
+        
+        private final Date start;
+        private final Date end;
+        
+        SerializationProxy (Period p) {
+            this.start = p.start;
+            this.end = p.end;
+        }
+
+        private Object readResolve() { return new Period(start, end); }
+    }
+    ... // Remainder omitted
+}
+{{/code}}
+
+<input type="radio" name="serialization4" value="defensive4"> **Be extremely defensive**
+
+{{code language="java"}}
+public final class Period implements Serializable {
+    private Date start;
+    private Date end;
+
+    public Period(Date start, Date end) {
+        this.start = new Date(start.getTime());
+        this.end = new Date(end.getTime());
+        if (this.start.compareTo(this.end) > 0)
+            throw new IllegalArgumentException(start + " after " + end);
+    }
+
+    public Date start() { return new Date(start.getTime()); }
+    public Date end() { return new Date(end.getTime()); }
+
+    private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+        s.defaultReadObject();
+        start = new Date(start.getTime());
+        end = new Date(end.getTime());
+        if (start.compareTo(end) > 0)
+            throw new InvalidObjectException(start + " after " + end);
+    }
+    ... // Remainder omitted
+}
+{{/code}}
+
+{{/html}}
+
+{{showhide showmessage="Show Answer and Explanation" hidemessage="Hide Answer and Explanation"}}
+**The serialization proxy pattern above is reasonably straightforward and has been useful whenever you find yourself having to write {{code language="java"}} readObject {{/code}} and {{code language="java"}} writeObject {{/code}} on a class that is not extendable by its clients**. This pattern would be the easiest way to serialize nontrivial invariants robustly. Here are some advantages of this pattern:
+* It will never generate a serialized instance of the enclosing class or leak references of its nontransient fields, making the enclosing class safe.
+* It utilizes existing constructors/static factories of the enclosing class.
+* Its nontransient fields can be declared as {{code language="java"}} final {{/code}}.
+
+Note, however that, the pattern has two main limitations, as follows:
+* It is not compatible with classes that are extendable by their clients. It is also not compatible with some classes whose object graphs contain circularities, because it you attempt to invoke a method on such an object from within its proxy's {{code language="java"}} readResolve {{/code}} method then you'll get {{code language="java"}} ClassCastException {{/code}} because you have only the object's serialization proxy but not the object yet.
+* The added power and safety of the proxy come with some little more cost: the first implementation above could be 10-20% slower than the second one.
+{{/showhide}}
+</div>
+
+<div class="tab-pane" id="Conclusion">
+
+==Concluding Remarks==
+Thank you for your time to complete this course! **Hope you enjoy it and be able to apply it to your daily coding and code review!**
+<br><br>
+[[Take the quiz>>https://knet.amazon.com/?/LMS/LoDetails/DetailsLo.aspx?loid=7e2536b3-ec7b-40d5-a2d0-c3f5c478af7a]] and **get a phone tool icon** for completing this course!
+</div>
